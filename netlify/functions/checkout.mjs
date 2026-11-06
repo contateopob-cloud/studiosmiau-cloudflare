@@ -1,7 +1,7 @@
 // Recebe o pedido do site, calcula o preço AQUI no servidor, cria o link de pagamento no Asaas
 // e avisa a equipe no Telegram. O navegador nunca manda preço nem link.
 import { cotacao, PLANOS, SERVICOS } from '../lib/precos.mjs';
-import { json, limpar, assinarPedido, telegram, encaminhar, reais, ehLinkAsaas, asaas } from '../lib/util.mjs';
+import { json, limpar, assinarPedido, telegram, encaminhar, reais, ehLinkAsaas, asaas, visitante } from '../lib/util.mjs';
 
 const MODOS = ['plan', 'custom', 'service', 'contato'];
 
@@ -37,6 +37,7 @@ export default async (req, context) => {
   const registro = {
     pedido: id, recebido_em: new Date().toISOString(), ip: context.ip || '',
     navegador: (req.headers.get('user-agent') || '').slice(0, 200), ...c,
+    ...visitante(req, context, { prefixar: true }), // ip, rede, ua, eq, ip_cidade, ip_regiao, ip_pais
   };
   delete registro.website;
 

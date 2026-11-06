@@ -94,6 +94,30 @@ export async function painel(corpo) {
   return await r.json();
 }
 
+// ---- Quem está visitando: IP, cidade aproximada, rede, navegador e cookie da equipe ----
+// O Worker do Cloudflare é quem enxerga isso (o Apps Script não). Vai junto de cada evento enviado ao painel.
+const lim = (v, n) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n);
+export function lerCookie(req, nome) {
+  const m = new RegExp('(?:^|;\\s*)' + nome + '=([^;]*)').exec(req.headers.get('cookie') || '');
+  try { return m ? decodeURIComponent(m[1]) : ''; } catch { return ''; }
+}
+// prefixar: true -> ip_cidade, ip_regiao, ip_pais (nos eventos que já têm um campo "cidade" digitado pelo cliente: funil e pedido)
+export function visitante(req, context, { prefixar = false } = {}) {
+  const cf = req.cf || {};
+  const geo = { cidade: lim(cf.city, 80), regiao: lim(cf.region, 80), pais: lim(cf.country, 2) };
+  const o = {
+    ip: lim(req.headers.get('cf-connecting-ip') || (context && context.ip) || '', 45),
+    rede: lim(cf.asOrganization, 80),
+    ua: lim(req.headers.get('user-agent'), 150),
+    eq: lim(lerCookie(req, 'miau_eq'), 80),
+  };
+  if (prefixar) { o.ip_cidade = geo.cidade; o.ip_regiao = geo.regiao; o.ip_pais = geo.pais; } else Object.assign(o, geo);
+  return o;
+}
+// O cookie da equipe confere com o EQ_TOKEN do Cloudflare? (o Apps Script confere de novo com o dele)
+export const equipeConfere = (valor) => { const t = process.env.EQ_TOKEN || ''; return t.length >= 12 && !!valor && igual(valor, t); };
+export const painelConfere = (valor) => { const t = process.env.PAINEL_TOKEN || ''; return t.length >= 12 && !!valor && igual(valor, t); };
+
 export const reais = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const ehLinkAsaas = (u) => {
   try { const x = new URL(u); return x.protocol === 'https:' && (x.hostname === 'asaas.com' || x.hostname.endsWith('.asaas.com')); }

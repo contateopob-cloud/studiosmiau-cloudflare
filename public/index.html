@@ -583,8 +583,14 @@ html:has(dialog[open]){overflow:hidden}
 .pv-thanks b{font-family:var(--f-display);font-size:1.3rem;display:block}
 .pv-thanks p{margin:6px 0 14px;color:var(--muted)}
 .pv-more{margin-top:8px}
+.pv-direto{margin-top:18px;padding:18px;border:1.5px solid var(--line);border-radius:var(--r-m);background:var(--surface)}
+.pv-direto b{font-family:var(--f-display);font-size:1.1rem;display:block}
+.pv-direto p{margin:6px 0 12px;color:var(--muted)}
+.pv-direto .btn{margin-top:12px}.pv-direto p+.btn{margin-top:0}
+.pv-thanks .pv-inc{color:var(--ink);margin-top:-6px}
 .pv-more .svc-teaser{margin-top:10px}
 .pv-val{margin:22px 0 0;color:var(--muted);font-size:.85rem}
+.pv-priv{margin-top:8px;font-size:.78rem}
 .pv-off{padding-top:20px}
 body[data-view="previa"] .tabbar{display:none}
 .btn-line-dark{background:transparent;color:var(--ink);border-color:var(--line)}
@@ -900,7 +906,7 @@ const CFG={
     ['Pagamento','Pix à vista ou cartão. O valor do cartão já inclui a taxa de processamento. No plano mensal, a cobrança se repete todo mês, no cartão ou por Pix, até o cancelamento. Em caso de atraso, os serviços podem ser pausados até a regularização.'],
     ['Prazo e cancelamento','O plano mensal pode ser cancelado com aviso de 30 dias. Nos planos de 3, 6 e 12 meses, o desconto vale para o período contratado.'],
     ['Resultados','Não garantimos número de seguidores, alcance ou vendas. Garantimos a entrega do que foi contratado.'],
-    ['Dados pessoais','Usamos seus dados só para prestar o serviço e emitir a cobrança, conforme a LGPD.'],
+    ['Dados pessoais','Usamos seus dados só para prestar o serviço e emitir a cobrança, conforme a LGPD. Para a segurança do site e dos links privados e para entender o movimento, também registramos o endereço IP, a cidade aproximada e o horário de acesso, por tempo limitado.'],
     ['Aceite eletrônico','Ao marcar a caixa de aceite, você concorda com estes termos. Registramos nome, documento, data, hora, endereço IP, versão dos termos e o que foi contratado.']
   ]
 };
@@ -977,7 +983,8 @@ function feedHtml(){
 }
 function bindWa(root){
   $$('a[data-wa]',root).forEach(a=>{
-    if(CFG.whatsapp){a.onclick=null;a.href='https://wa.me/'+CFG.whatsapp+'?text='+encodeURIComponent(a.dataset.msg||'');a.target='_blank';a.rel='noopener';}
+    const num=a.dataset.num||CFG.whatsapp;
+    if(num){a.onclick=null;a.href='https://wa.me/'+num+'?text='+encodeURIComponent(a.dataset.msg||'');a.target='_blank';a.rel='noopener';}
     else{a.href='#';a.onclick=e=>{e.preventDefault();openFlow({mode:'contato'});};}
   });
 }
@@ -1500,20 +1507,35 @@ const PV_RESP={
   duvida:{t:'Pode perguntar!',d:'Chama a gente no WhatsApp. Respondemos o mais rápido que der.',wa:'Vi o vídeo e tenho uma dúvida.'}
 };
 function pvData(iso){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');return m?`${m[3]}/${m[2]}/${m[1]}`:'';}
+const WA_I='<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21l1.6-4.6A8.5 8.5 0 1 1 8 19.4L3 21z"/><path d="M9 8.2c0 3.6 3.1 6.7 6.7 6.7l1.1-1.6-2.1-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-2.1z"/></svg>';
+function pvTrack(a){
+  if(!PV.code||PV.off||location.protocol==='file:') return;
+  try{fetch('/api/previa',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({c:PV.code,a:a})}).catch(()=>{});}catch(e){}
+}
+/* botão de WhatsApp da prévia: usa o número e a mensagem definidos no painel; se não houver, o número do estúdio */
+function pvBotao(frase,rotulo,cls){
+  const d=PV.data||{};
+  return `<a class="${cls||'btn btn-primary btn-block'}" href="#" data-wa${d.botaoWhats?` data-num="${esc(d.botaoWhats)}"`:''} data-msg="${esc(d.botaoMensagem||pvWa(frase))}">${WA_I}${esc(rotulo||'Falar no WhatsApp')}</a>`;
+}
+function pvDireto(){
+  const d=PV.data||{};
+  if(!(d.incentivo||d.botaoWhats||d.botaoMensagem)) return '';
+  return `<div class="pv-direto"><b>Prefere falar direto com a gente?</b>${d.incentivo?`<p>${esc(d.incentivo)}</p>`:''}${pvBotao('Vi o vídeo e quero conversar.','Chamar no WhatsApp')}</div>`;
+}
 function pvWa(frase){const d=PV.data||{};return `Oi! Sou ${d.cliente||'o cliente'}${d.empresa?' (da '+d.empresa+')':''}. ${frase}`;}
 function pvReacao(){
   const d=PV.data;
   if(PV.resp){
     const r=PV_RESP[PV.resp];
-    return `<div class="pv-thanks"><b>${esc(r.t)}</b><p>${esc(r.d)}</p>
-      <a class="btn btn-primary btn-block" href="#" data-wa data-msg="${esc(pvWa(r.wa))}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21l1.6-4.6A8.5 8.5 0 1 1 8 19.4L3 21z"/><path d="M9 8.2c0 3.6 3.1 6.7 6.7 6.7l1.1-1.6-2.1-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-2.1z"/></svg>Falar no WhatsApp</a></div>`;
+    return `<div class="pv-thanks"><b>${esc(r.t)}</b><p>${esc(r.d)}</p>${d&&d.incentivo?`<p class="pv-inc"><strong>${esc(d.incentivo)}</strong></p>`:''}
+      ${pvBotao(r.wa)}</div>`;
   }
   return `<h2 class="pv-q">O que você achou?</h2>
     <div class="pv-react" role="group" aria-label="O que você achou do vídeo?">
       <button type="button" class="main" data-pvr="gostei"><span aria-hidden="true">💗</span>Gostei muito!</button>
       <button type="button" data-pvr="ajustes"><span aria-hidden="true">✏️</span>Quero ajustar algo</button>
       <button type="button" data-pvr="duvida"><span aria-hidden="true">💬</span>Tenho uma dúvida</button>
-    </div>${PV.enviando?'<p class="sub" role="status">Enviando…</p>':''}`;
+    </div>${PV.enviando?'<p class="sub" role="status">Enviando…</p>':''}${pvDireto()}`;
 }
 function pvMais(){
   return `<div class="pv-more"><h2 class="pv-q">Quer ver como a gente trabalha?</h2>
@@ -1537,7 +1559,8 @@ function paintPrevia(){
     ${d.mensagem?`<p class="pv-msg">${esc(d.mensagem)}</p>`:''}
     <div id="pv-reacao">${pvReacao()}</div>
     ${pvMais()}
-    ${val?`<p class="pv-val">Este link fica disponível até ${val}.</p>`:''}`;
+    ${val?`<p class="pv-val">Este link fica disponível até ${val}.</p>`:''}
+    <p class="pv-val pv-priv">Para a segurança deste link privado, registramos o horário, o IP e a cidade aproximada de quem o abre.</p>`;
   bindWa(box);
 }
 function renderPrevia(code){
@@ -1547,14 +1570,19 @@ function renderPrevia(code){
   if(location.protocol==='file:'){PV.off=true;paintPrevia();return;}
   fetch('/api/previa?c='+encodeURIComponent(code),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
     const p=j&&j.ok&&j.previa;
-    if(p&&/^[A-Za-z0-9_-]{11}$/.test(p.id||'')) PV.data={id:p.id,cliente:String(p.cliente||'').slice(0,60),empresa:String(p.empresa||'').slice(0,80),mensagem:String(p.mensagem||'').slice(0,300),validoAte:String(p.validoAte||''),horizontal:!!p.horizontal};
+    if(p&&/^[A-Za-z0-9_-]{11}$/.test(p.id||'')) PV.data={id:p.id,cliente:String(p.cliente||'').slice(0,60),empresa:String(p.empresa||'').slice(0,80),mensagem:String(p.mensagem||'').slice(0,300),validoAte:String(p.validoAte||''),horizontal:!!p.horizontal,botaoWhats:/^\d{12,13}$/.test(p.botaoWhats||'')?p.botaoWhats:'',botaoMensagem:String(p.botaoMensagem||'').slice(0,300),incentivo:String(p.incentivo||'').slice(0,200)};
     else PV.off=true;
     if(previaCode()===code&&document.body.dataset.view==='previa') paintPrevia();
   }).catch(()=>{PV.off=true;if(document.body.dataset.view==='previa')paintPrevia();});
 }
 document.addEventListener('click',e=>{
+  if(document.body.dataset.view==='previa'&&PV.data){
+    if(e.target.closest('#previa a[data-wa]')) pvTrack('whatsapp');
+    else if(e.target.closest('#previa a[href="#planos"]')) pvTrack('planos');
+    else if(e.target.closest('#previa a[href="#servicos"]')) pvTrack('servicos');
+  }
   const pl=e.target.closest('#pv-play');
-  if(pl&&PV.data){$('#pv-video').innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${PV.data.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Vídeo da Studios Miau" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;return;}
+  if(pl&&PV.data){pvTrack('play');$('#pv-video').innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${PV.data.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Vídeo da Studios Miau" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;return;}
   const rb=e.target.closest('[data-pvr]');
   if(rb&&PV.data&&!PV.enviando){
     const r=rb.dataset.pvr; PV.enviando=true; $('#pv-reacao').innerHTML=pvReacao();

@@ -5,6 +5,8 @@ import config from '../netlify/functions/config.mjs';
 import portfolio from '../netlify/functions/portfolio.mjs';
 import previa from '../netlify/functions/previa.mjs';
 import asaasWebhook from '../netlify/functions/asaas-webhook.mjs';
+import meuip from '../netlify/functions/meuip.mjs';
+import { equipeConfere } from '../netlify/lib/util.mjs';
 
 const ROTAS = {
   '/api/checkout': checkout,
@@ -12,6 +14,7 @@ const ROTAS = {
   '/api/config': config,
   '/api/previa': previa,
   '/api/asaas-webhook': asaasWebhook,
+  '/api/meuip': meuip,
 };
 
 export default {
@@ -34,6 +37,18 @@ export default {
       resp.headers.delete('Netlify-CDN-Cache-Control');
       ctx.waitUntil(caches.default.put(chave, resp.clone()));
       return resp;
+    }
+
+    // Cookie da equipe: o painel abre o site com ?eq=SENHA uma vez em cada aparelho. Se a senha confere com EQ_TOKEN,
+    // o Worker grava o cookie (1 ano) e volta para o mesmo endereço sem a senha na barra.
+    if (!url.pathname.startsWith('/api/') && url.searchParams.has('eq') && (request.method === 'GET' || request.method === 'HEAD')) {
+      const t = url.searchParams.get('eq') || '';
+      url.searchParams.delete('eq');
+      const h = new Headers({ Location: url.pathname + url.search, 'Cache-Control': 'no-store' });
+      if (/^[A-Za-z0-9_.~-]{12,80}$/.test(t) && equipeConfere(t)) {
+        h.append('Set-Cookie', `miau_eq=${t}; Max-Age=31536000; Path=/; Secure; HttpOnly; SameSite=Lax`);
+      }
+      return new Response(null, { status: 302, headers: h });
     }
 
     const rota = ROTAS[url.pathname];

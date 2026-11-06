@@ -113,6 +113,15 @@ O cliente vê "Olá, {nome}!", assiste, toca em **Gostei muito / Quero ajustar a
    (Alternativa: `criarPrevia('Ana','Clínica Sol','9199...','https://youtu.be/ID',7,'mensagem')` devolve o link pronto.)
 3. Mande o link no WhatsApp.
 
+**WhatsApp pessoal, mensagem e incentivo (opcionais, colunas N, O e P da aba Prévias):**
+- **Meu WhatsApp (botão):** seu número privado com DDD. O botão de WhatsApp daquela página chama esse número. Vazio = número do Studios Miau.
+- **Mensagem do botão:** o texto que já vem escrito para o cliente enviar.
+- **Incentivo:** frase que aparece junto ao botão, por exemplo "Me chame hoje e ganhe uma análise grátis do seu perfil".
+- Se qualquer uma das três estiver preenchida, a página mostra o quadro "Prefere falar direto com a gente?". Depois que o cliente reage (Gostei muito etc.), o agradecimento mostra o incentivo e o mesmo botão.
+- Também dá para passar direto: `criarPrevia('Ana','Clínica Sol','9199...','https://youtu.be/ID',7,'recado','','91988887777','Oi, vi o vídeo!','Ganhe uma análise grátis')`.
+
+**Histórico de cliques (aba "Prévias - Cliques"):** uma linha para cada ação do cliente, com data e hora: abriu a página, tocou em play, respondeu (gostei / ajustes / dúvida), foi ver planos, foi ver serviços, clicou no WhatsApp. Não guarda IP nem dados do aparelho. O clique no WhatsApp também avisa por e-mail (e Telegram, se configurado), porque é a hora de ficar de olho na conversa.
+
 **Comportamento:** o código tem 6 letras/números aleatórios (não dá para adivinhar); o link expira no "Válido até"; coluna "Ativo" = `não` (ou `encerrarPrevia('codigo')`) desliga na hora. Link vencido/desligado/inexistente mostra "Este link não está mais disponível" com botão de WhatsApp. A página não aparece no Google (noindex).
 **Avisos:** e-mail à equipe na 1ª abertura e a cada resposta (+ Telegram se configurado). A planilha guarda visualizações, último acesso e resposta.
 **Deploy:** precisa subir uma vez a função `previa.mjs` + o `netlify.toml` novo (redirect `/p/*`). No Apps Script, colar o `painel-notificacao.gs`, preencher o CONFIG de novo e criar nova versão da implantação.
@@ -130,3 +139,18 @@ O mesmo pacote funciona no Netlify e no Cloudflare. Para o Cloudflare ele traz `
 6. O endereço do webhook do Asaas continua `https://studiosmiau.com.br/api/asaas-webhook`.
 
 Cada envio ao GitHub gera um deploy sem gastar créditos.
+
+## IP, cidade e reconhecimento da equipe
+
+O Worker (que enxerga o IP; o Apps Script não) acrescenta ao corpo de cada evento enviado ao painel:
+- **Eventos `previa`, `previa_clique`, `previa_resposta`:** `ip`, `cidade`, `regiao`, `pais`, `rede` (operadora/empresa), `ua` (navegador, 150 caracteres) e `eq` (valor do cookie `miau_eq`, se existir).
+- **Eventos `funil` e `pedido`:** `ip`, `rede`, `ua`, `eq` e a cidade do IP em `ip_cidade`, `ip_regiao`, `ip_pais` (o campo `cidade` desses eventos já é a cidade que o cliente digitou).
+- Se o painel responder `equipe: true`, ou se o cookie conferir com `EQ_TOKEN`, o site **não manda aviso no Telegram** daquela visita.
+
+**Cookie da equipe:** abra `https://studiosmiau.com.br/?eq=SENHA` uma vez em cada aparelho ou navegador da equipe. Se a senha conferir com a variável `EQ_TOKEN`, o site grava o cookie `miau_eq` (1 ano, `HttpOnly`, `Secure`) e volta para o endereço sem a senha. Funciona também em `/p/CODIGO?eq=SENHA`.
+
+**`GET /api/meuip`:** devolve `{ip, cidade, regiao, pais, rede}` de quem chamou. Exige a senha do painel no cabeçalho `X-Painel-Token` (ou `Authorization: Bearer ...`), nunca na barra de endereço. Aceita chamadas de outro endereço (o painel); se quiser limitar, crie a variável `PAINEL_ORIGEM` com o endereço do painel.
+
+**Variáveis novas no Cloudflare (como Segredo):** `EQ_TOKEN` (a mesma senha guardada no Apps Script como propriedade `EQ_TOKEN`, 12+ caracteres) e, opcionalmente, `PAINEL_ORIGEM`.
+
+**Privacidade:** os termos do site e a página da prévia agora avisam que IP, cidade aproximada e horário são registrados. A cidade pelo IP é aproximada. A regra de guardar por tempo limitado (sugestão: apagar IP e cidade com mais de 90 dias) precisa ser feita no Apps Script.
