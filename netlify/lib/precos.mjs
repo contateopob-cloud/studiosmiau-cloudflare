@@ -36,7 +36,7 @@ export const SERVICOS = {
 // Mensal: cobrança que se repete todo mês (assinatura). 3, 6 e 12 meses: uma cobrança só, com o total do período.
 // O Pix tem o preço à vista; o cartão tem o preço com a taxa já embutida (sem a palavra juros).
 // redesExtra: texto com as redes a mais separadas por vírgula (ex.: 'TikTok,Facebook'). Cada uma soma o valor redeExtra do plano.
-export function cotacao(planoId, periodoId, forma, redesExtra = '') {
+export function cotacao(planoId, periodoId, forma, redesExtra = '', { semTeste = false } = {}) {
   const plano = Object.hasOwn(PLANOS, planoId) ? PLANOS[planoId] : null;
   const per = Object.hasOwn(PERIODOS, periodoId) ? PERIODOS[periodoId] : null;
   if (!plano || !per || (forma !== 'pix' && forma !== 'cartao')) return null;
@@ -45,7 +45,7 @@ export function cotacao(planoId, periodoId, forma, redesExtra = '') {
   const rede = redes.join(' + ');
   const mensal = plano.mensal + redes.length * plano.redeExtra;
   let pix = Math.round(mensal * (1 - per.desconto) * per.meses * 100);
-  const teste = Number(process.env.TESTE_CENTAVOS || 0);
+  const teste = semTeste ? 0 : Number(process.env.TESTE_CENTAVOS || 0);
   if (teste >= 100) pix = teste; // modo de teste: cobra um valor pequeno
   const cartao = Math.round(pix / (1 - per.taxa));
   return {
@@ -58,14 +58,14 @@ export function cotacao(planoId, periodoId, forma, redesExtra = '') {
 
 // Serviço avulso: o valor da tabela é o que se cobra (preço por unidade x quantidade). Sem mensalidade, uma cobrança só.
 // Cartão: mesma taxa do plano mensal (à vista). Serviço com valor 0 (site completo) é só proposta: devolve null.
-export function cotacaoServico(servicoId, quantidade, forma) {
+export function cotacaoServico(servicoId, quantidade, forma, { semTeste = false } = {}) {
   const sv = Object.hasOwn(SERVICOS, servicoId) ? SERVICOS[servicoId] : null;
   if (!sv || !sv.a_partir_de || (forma !== 'pix' && forma !== 'cartao')) return null;
   const max = sv.max || 1;
   const qtd = Number(quantidade || 1);
   if (!Number.isInteger(qtd) || qtd < 1 || qtd > max) return null;
   let pix = Math.round(sv.a_partir_de * qtd * 100);
-  const teste = Number(process.env.TESTE_CENTAVOS || 0);
+  const teste = semTeste ? 0 : Number(process.env.TESTE_CENTAVOS || 0);
   if (teste >= 100) pix = teste;
   const cartao = Math.round(pix / (1 - PERIODOS.mensal.taxa));
   return {

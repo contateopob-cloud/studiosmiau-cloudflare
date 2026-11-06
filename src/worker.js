@@ -6,6 +6,7 @@ import portfolio from '../netlify/functions/portfolio.mjs';
 import previa from '../netlify/functions/previa.mjs';
 import asaasWebhook from '../netlify/functions/asaas-webhook.mjs';
 import meuip from '../netlify/functions/meuip.mjs';
+import planos from '../netlify/functions/planos.mjs';
 import briefing from '../netlify/functions/briefing.mjs';
 import pedidoExterno from '../netlify/functions/pedido-externo.mjs';
 import { equipeConfere } from '../netlify/lib/util.mjs';
@@ -19,6 +20,7 @@ const ROTAS = {
   '/api/meuip': meuip,
   '/api/pedido-externo': pedidoExterno,
   '/api/briefing': briefing,
+  '/api/planos': planos,
 };
 
 export default {

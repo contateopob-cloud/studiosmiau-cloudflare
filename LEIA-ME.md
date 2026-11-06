@@ -191,3 +191,7 @@ Os ícones do site são SVGs de linha, definidos em `IC` no `index.html` (planos
 ## Imagem dos planos para o WhatsApp (1000x1000)
 `public/img/planos-whatsapp.png` (endereço: `https://studiosmiau.com.br/img/planos-whatsapp.png`) é feita em HTML com o padrão do site (`public/planos-whatsapp.html`, que também pode ser aberta no navegador) e exportada em PNG pelo `tools/build.py`, com os preços e itens atuais dos planos. Mudou preço ou plano no site: gere de novo e envie o PNG novo. Ao trocar a imagem, use um endereço com versão (ex.: `...png?v=2`) para o WhatsApp não mostrar a antiga em cache.
 Segurança: o arquivo é estático, servido pelo Cloudflare, e só muda por um deploy do repositório do GitHub. Proteja a conta do GitHub e do Cloudflare com verificação em duas etapas.
+
+## Texto dos planos para a IA do WhatsApp (`GET /api/planos`)
+Com a senha do painel (`X-Painel-Token`), devolve `{ok, atualizado, versao, imagem, texto}`. O `texto` é montado na hora com os preços de `netlify/lib/precos.mjs` (a mesma tabela que cobra, sem o modo de teste) e as entregas do site (`netlify/lib/entregas.gen.mjs`, gerado pelo `tools/build.py`). `imagem` é o endereço da imagem dos planos com `?v=` novo sempre que o conteúdo muda. O build **para** se os preços do site e do `precos.mjs` divergirem.
+Ao mudar plano, entrega ou preço: edite o site e o `precos.mjs`, rode `python3 tools/build.py`, e suba o pacote. Nada mais precisa ser copiado para o painel.
