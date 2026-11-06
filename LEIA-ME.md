@@ -76,7 +76,7 @@ Foi escrito pela documentação e testado com um Asaas de mentira. No sandbox, c
 - O preço do cartão já embute a **taxa do cartão + a antecipação** (receber em até 2 dias). As porcentagens (`taxa` em `precos.mjs` e `CFG.periods` no `index.html`) usam as taxas da conta fora da promoção e estão explicadas no começo de `precos.mjs`. Para o dinheiro cair em 2 dias, a **antecipação automática precisa estar ligada** no Asaas.
 
 ## Rede extra (TikTok, Facebook, YouTube Shorts)
-Cada plano pode levar redes a mais (TikTok, Facebook, YouTube Shorts), e cada rede soma o valor mensal abaixo. Os valores (Essencial +R$ 360, Médio +R$ 510, Premium +R$ 750, cerca de 30% do plano) são **provisórios**. Para mudar, edite `redeExtra` em `precos.mjs` **e** em `CFG.redeExtra` no `index.html`. O desconto do período vale também sobre a rede extra.
+Cada plano pode levar redes a mais (TikTok, Facebook, YouTube Shorts), e cada rede soma o valor mensal abaixo. Os valores (Start +R$ 210, Essencial +R$ 360, Médio +R$ 510, Premium +R$ 750, cerca de 30% do plano) são **provisórios**. Para mudar, edite `redeExtra` em `precos.mjs` **e** em `CFG.redeExtra` no `index.html`. O desconto do período vale também sobre a rede extra.
 
 ## Onde ficam as respostas e por onde o cliente parou
 O Netlify **não guarda** os pedidos. As respostas do cliente vão para onde vocês configurarem:
@@ -198,3 +198,13 @@ Ao mudar plano, entrega ou preço: edite o site e o `precos.mjs`, rode `python3 
 
 ## Pedido de teste da equipe (`"teste": true`)
 No `POST /api/pedido-externo` (com a senha do painel), `"teste": true` cobra só o valor de teste: `TESTE_CENTAVOS` ou R$ 10,00 (o maior dos dois; o mínimo do Pix na conta) e não aplica o limite de 1 pedido por hora. Vale para `?simular=1` e para o pedido real. O link do Asaas leva "(TESTE)" no nome, nunca vira assinatura (mesmo no plano mensal) e o evento `pedido` e o evento `pagamento` seguem ao painel com `"teste": true`. Sem `teste: true` (ou com qualquer valor que não seja o booleano true), nada muda.
+
+
+## Plano Start (R$ 697/mês)
+
+Plano de entrada: 1 Reels por mês, 4 stories por semana, organização do perfil (bio, destaques e linha visual) e relatório mensal enviado. Aceita todos os períodos (mensal, 3, 6 e 12 meses, com os mesmos descontos) e rede extra (+R$ 210/mês cada). Visita técnica é opcional (R$ 500).
+
+- Aparece sozinho em: lista de planos, tabela de comparação, página `/bio`, imagem dos planos do WhatsApp (agora em 2x2) e `/api/planos`.
+- Na página de **Edição de vídeo** ele é recomendado como "assessoria mais barata". Com 2 ou mais vídeos no carrinho, o texto compara o valor dos vídeos com o do Start.
+- Para mudar o preço: `CFG.plans` (id `start`) no `index.html` **e** `start` em `netlify/lib/precos.mjs`. O build para se os dois divergirem.
+- O plano sob medida continua começando em R$ 1.197 (`CFG.floor`).

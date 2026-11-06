@@ -1,6 +1,16 @@
 // GERADO por tools/build.py a partir do site. Não edite à mão.
 export const GERADO = "2026-11-06";
 export const ENTREGAS = {
+  "start": {
+    "nome": "Start",
+    "entregas": [
+      "Conteúdo para o Instagram da sua empresa",
+      "1 Reels por mês, com roteiro, edição e legenda",
+      "4 stories por semana",
+      "Organização do perfil: bio, destaques e linha visual",
+      "Relatório mensal enviado, com os números e espaço para o seu feedback"
+    ]
+  },
   "essencial": {
     "nome": "Essencial",
     "entregas": [

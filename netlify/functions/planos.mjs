@@ -24,6 +24,7 @@ export function montarTexto() {
   L.push(`- Rede extra: o plano é para o Instagram; levar a mesma produção a mais uma rede (${lista(REDES)}) custa por mês, cada uma: ${Object.entries(PLANOS).map(([, p]) => `${p.nome} +${R(p.redeExtra * 100)}`).join(', ')}.`);
   L.push(`- Visita técnica (gravação presencial) só em ${lista(AREA)}; o Premium inclui 1 por mês e nos outros planos pode ser contratada como extra por ${R(VISITA_EXTRA * 100)} cada.`);
   L.push('- Plano sob medida (quantidades personalizadas): é montado e orçado pela equipe.');
+  if (PLANOS.start) L.push(`- Dica: o ${PLANOS.start.nome} (${R(PLANOS.start.mensal * 100)}/mês) é a assessoria mais barata. Quando o cliente pedir só edição de vídeo e disser que precisa de vídeo todo mês, apresente o ${PLANOS.start.nome} uma vez, sem insistir.`);
   L.push('SERVIÇOS AVULSOS (sem mensalidade, pagamento único; valor no Pix, o cartão é um pouco maior):');
   for (const [id, sv] of Object.entries(SERVICOS)) {
     if (!sv.a_partir_de) { L.push(`- ${sv.nome}: sob proposta, é com a equipe.`); continue; }

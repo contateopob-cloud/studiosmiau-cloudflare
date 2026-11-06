@@ -15,6 +15,7 @@ export const PERIODOS = {
 
 export const PLANOS = {
   // redeExtra: valor por mês para levar a mesma produção a mais uma rede (cerca de 30% do plano, PROVISÓRIO: confirme os valores). O id 'completo' é o plano Premium.
+  start:     { nome: 'Start',     mensal: 697,  visita: false, redeExtra: 210 },
   essencial: { nome: 'Essencial', mensal: 1197, visita: false, redeExtra: 360 },
   medio:     { nome: 'Médio',     mensal: 1697, visita: false, redeExtra: 510 },
   completo:  { nome: 'Premium',   mensal: 2497, visita: true,  redeExtra: 750 },
