@@ -154,3 +154,19 @@ O Worker (que enxerga o IP; o Apps Script não) acrescenta ao corpo de cada even
 **Variáveis novas no Cloudflare (como Segredo):** `EQ_TOKEN` (a mesma senha guardada no Apps Script como propriedade `EQ_TOKEN`, 12+ caracteres) e, opcionalmente, `PAINEL_ORIGEM`.
 
 **Privacidade:** os termos do site e a página da prévia agora avisam que IP, cidade aproximada e horário são registrados. A cidade pelo IP é aproximada. A regra de guardar por tempo limitado (sugestão: apagar IP e cidade com mais de 90 dias) precisa ser feita no Apps Script.
+
+## Miniatura ao enviar o link (WhatsApp etc.)
+- Site: `public/og.jpg` (logo e texto centralizados, aguenta o corte quadrado do WhatsApp).
+- Links de prévia (`/p/CODIGO`): o Worker troca título, descrição e imagem (`public/og-previa.jpg`, "Vídeo feito para você") para quem recebe o link. Não conta visualização.
+- O WhatsApp guarda a miniatura por endereço. Para o site, envie `studiosmiau.com.br/?v=2` na primeira vez; links de prévia novos já saem certos.
+
+## Pedido pelo WhatsApp (`POST /api/pedido-externo`)
+Usado só pelo painel/IA (senha PAINEL_TOKEN no cabeçalho `X-Painel-Token`). A IA manda plano_id (essencial|medio|completo), periodo_id (mensal|3|6|12), forma (pix|cartao), rede_extra opcional, nome, empresa, instagram, whatsapp, email, documento, cidade e `aceite {texto_versao, msg_id, em}`. O valor é calculado no site; nunca vem da IA.
+- `?simular=1`: devolve só o valor (não cria nada, não avisa ninguém).
+- Sucesso: `{ok, pedido, valor_cobrado, plano, periodo, forma, parcelas, link_pagamento}`. Cria a cobrança no Asaas, avisa o Telegram e manda o evento `pedido` ao painel com `origem: "whatsapp"` (e `aceite_canal`, `aceite_msg_id`, `aceite_em`; IP vazio).
+- Erro: `{ok:false, erro}`; nada é cobrado nem enviado ao painel. Sob medida e o site completo (sem valor fixo) são recusados (422): é com a equipe. Serviço avulso: mande `servico_id` (video, carrossel, pacote4, auditoria, layout, musica) e `quantidade` (video e carrossel até 20; os demais 1) no lugar de plano_id/periodo_id; o valor é o da tabela × quantidade, pagamento único (Pix ou cartão).
+- Limite: 1 pedido por número por hora (429).
+- O pagamento é confirmado pelo mesmo webhook do Asaas dos pedidos do site.
+
+## Serviços avulsos pagos direto
+Serviços com valor na tabela (`netlify/lib/precos.mjs`, função `cotacaoServico`) agora são cobrados no site e no WhatsApp: o cliente escolhe Pix ou cartão, aceita os termos, informa CPF/CNPJ e recebe o link do Asaas. O valor é o da tabela × quantidade (vídeo: por Reels de 15 s a 1 min). Depois do pagamento a equipe chama em até 24 horas para pegar o que falta. O site completo continua sob proposta (sem cobrança). Termos versão 2026-11-rascunho-7.

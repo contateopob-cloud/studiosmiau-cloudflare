@@ -23,8 +23,8 @@ export const PLANOS = {
 export const REDES = ['TikTok', 'Facebook', 'YouTube Shorts'];
 
 export const SERVICOS = {
-  video:     { nome: 'Edição de vídeo', a_partir_de: 350 },
-  carrossel: { nome: 'Carrossel personalizado', a_partir_de: 90 },
+  video:     { nome: 'Edição de vídeo', a_partir_de: 350, max: 20 },   // por Reels de 15 segundos a 1 minuto
+  carrossel: { nome: 'Carrossel personalizado', a_partir_de: 90, max: 20 },
   pacote4:   { nome: 'Pacote com 4 carrosséis', a_partir_de: 320 },
   auditoria: { nome: 'Auditoria do perfil', a_partir_de: 97 },
   layout:    { nome: 'Layout do site', a_partir_de: 800 },
@@ -53,5 +53,24 @@ export function cotacao(planoId, periodoId, forma, redesExtra = '') {
     parcelas: per.parcelas, forma, visita: plano.visita, rede, redes,
     pixCentavos: pix, cartaoCentavos: cartao, valorCentavos: forma === 'pix' ? pix : cartao,
     teste: teste >= 100,
+  };
+}
+
+// Serviço avulso: o valor da tabela é o que se cobra (preço por unidade x quantidade). Sem mensalidade, uma cobrança só.
+// Cartão: mesma taxa do plano mensal (à vista). Serviço com valor 0 (site completo) é só proposta: devolve null.
+export function cotacaoServico(servicoId, quantidade, forma) {
+  const sv = Object.hasOwn(SERVICOS, servicoId) ? SERVICOS[servicoId] : null;
+  if (!sv || !sv.a_partir_de || (forma !== 'pix' && forma !== 'cartao')) return null;
+  const max = sv.max || 1;
+  const qtd = Number(quantidade || 1);
+  if (!Number.isInteger(qtd) || qtd < 1 || qtd > max) return null;
+  let pix = Math.round(sv.a_partir_de * qtd * 100);
+  const teste = Number(process.env.TESTE_CENTAVOS || 0);
+  if (teste >= 100) pix = teste;
+  const cartao = Math.round(pix / (1 - PERIODOS.mensal.taxa));
+  return {
+    servico: true, plano: sv.nome, periodo: qtd > 1 ? `${qtd} unidades` : '', qtd, meses: 0, recorrente: false, parcelas: 1,
+    forma, visita: false, rede: '', redes: [], pixCentavos: pix, cartaoCentavos: cartao,
+    valorCentavos: forma === 'pix' ? pix : cartao, teste: teste >= 100,
   };
 }

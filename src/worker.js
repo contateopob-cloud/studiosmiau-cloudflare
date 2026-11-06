@@ -6,6 +6,7 @@ import portfolio from '../netlify/functions/portfolio.mjs';
 import previa from '../netlify/functions/previa.mjs';
 import asaasWebhook from '../netlify/functions/asaas-webhook.mjs';
 import meuip from '../netlify/functions/meuip.mjs';
+import pedidoExterno from '../netlify/functions/pedido-externo.mjs';
 import { equipeConfere } from '../netlify/lib/util.mjs';
 
 const ROTAS = {
@@ -15,6 +16,7 @@ const ROTAS = {
   '/api/previa': previa,
   '/api/asaas-webhook': asaasWebhook,
   '/api/meuip': meuip,
+  '/api/pedido-externo': pedidoExterno,
 };
 
 export default {
@@ -58,7 +60,20 @@ export default {
     // Link de prévia (/p/codigo): abre o mesmo site, que lê o código do endereço. Fora do Google.
     if (url.pathname.startsWith('/p/')) {
       const r = await env.ASSETS.fetch(new Request(url.origin + '/index.html', { headers: request.headers }));
-      const resp = new Response(r.body, r);
+      const T = 'Vídeo feito para você · Studios Miau';
+      const D = 'Toque para assistir e conte pra gente o que achou. Link privado.';
+      const IMG = url.origin + '/og-previa.jpg';
+      const alvo = {
+        'meta[property="og:title"]': T, 'meta[name="twitter:title"]': T,
+        'meta[property="og:description"]': D, 'meta[name="twitter:description"]': D,
+        'meta[name="description"]': D, 'meta[property="og:image"]': IMG,
+        'meta[name="twitter:image"]': IMG, 'meta[property="og:url"]': url.origin + url.pathname,
+      };
+      let rw = new HTMLRewriter().on('title', { element(e) { e.setInnerContent(T); } });
+      for (const [sel, val] of Object.entries(alvo)) {
+        rw = rw.on(sel, { element(e) { e.setAttribute('content', val); } });
+      }
+      const resp = new Response(rw.transform(r).body, r);
       resp.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
       resp.headers.set('Cache-Control', 'no-store');
       return resp;

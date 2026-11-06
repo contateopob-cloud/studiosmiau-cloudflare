@@ -1,6 +1,6 @@
 // Recebe o pedido do site, calcula o preço AQUI no servidor, cria o link de pagamento no Asaas
 // e avisa a equipe no Telegram. O navegador nunca manda preço nem link.
-import { cotacao, PLANOS, SERVICOS } from '../lib/precos.mjs';
+import { cotacao, cotacaoServico, PLANOS, SERVICOS } from '../lib/precos.mjs';
 import { json, limpar, assinarPedido, telegram, encaminhar, reais, ehLinkAsaas, asaas, visitante } from '../lib/util.mjs';
 
 const MODOS = ['plan', 'custom', 'service', 'contato'];
@@ -23,8 +23,9 @@ export default async (req, context) => {
   if (!MODOS.includes(c.modo)) return json({ erro: 'Pedido inválido.' }, 400);
   const fone = c.whatsapp.replace(/\D/g, '');
   if (!c.nome || fone.length < 10) return json({ erro: 'Confira o seu nome e o WhatsApp.' }, 400);
-  // CPF/CNPJ e aceite dos termos só na contratação direta de plano; orçamentos e pedidos de serviço não pedem.
-  if (c.modo === 'plan') {
+  // CPF/CNPJ e aceite dos termos na contratação direta (plano ou serviço com valor); orçamentos e proposta não pedem.
+  const servicoPago = c.modo === 'service' && Object.hasOwn(SERVICOS, c.servico_id) && SERVICOS[c.servico_id].a_partir_de > 0;
+  if (c.modo === 'plan' || servicoPago) {
     const doc = c.documento.replace(/\D/g, '');
     if (doc.length !== 11 && doc.length !== 14) return json({ erro: 'Confira o CPF ou CNPJ.' }, 400);
     if (!c.aceite) return json({ erro: 'É preciso aceitar os termos.' }, 400);
@@ -42,9 +43,9 @@ export default async (req, context) => {
   delete registro.website;
 
   let pagamento_url = null, cot = null;
-  if (c.modo === 'plan') {
-    cot = cotacao(c.plano_id, c.periodo_id, c.forma, c.rede_extra);
-    if (!cot) return json({ erro: 'Plano, período ou forma de pagamento inválidos.' }, 400);
+  if (c.modo === 'plan' || servicoPago) {
+    cot = c.modo === 'plan' ? cotacao(c.plano_id, c.periodo_id, c.forma, c.rede_extra) : cotacaoServico(c.servico_id, c.quantidade, c.forma);
+    if (!cot) return json({ erro: 'Serviço, quantidade ou forma de pagamento inválidos.' }, 400);
     registro.order_nsu = assinarPedido(id, cot.pixCentavos);
     registro.valor_cobrado = reais(cot.valorCentavos);
     try {
@@ -66,12 +67,13 @@ export default async (req, context) => {
 //   3/6/12m + cartão  -> total no cartão, em até N parcelas
 export function corpoLink({ cot, id, nsu, origem, hoje = new Date() }) {
   const fim = new Date(hoje.getTime() + 7 * 864e5).toISOString().slice(0, 10); // o link fecha em 7 dias
+  const rotulo = cot.servico ? `${cot.plano}${cot.qtd > 1 ? ' x' + cot.qtd : ''}` : `Plano ${cot.plano} ${cot.periodo}${cot.rede ? ' + ' + cot.rede : ''}`;
   const body = {
-    name: `Studios Miau - Plano ${cot.plano} ${cot.periodo}${cot.rede ? ' + ' + cot.rede : ''} - ${nsu}`,
-    description: `Plano ${cot.plano}, ${cot.periodo}${cot.rede ? ', com ' + cot.rede : ''}. Pedido ${nsu}`,
+    name: `Studios Miau - ${rotulo} - ${nsu}`,
+    description: cot.servico ? `${rotulo}. Pedido ${nsu}` : `Plano ${cot.plano}, ${cot.periodo}${cot.rede ? ', com ' + cot.rede : ''}. Pedido ${nsu}`,
     value: Number((cot.valorCentavos / 100).toFixed(2)),
     billingType: cot.forma === 'pix' ? 'PIX' : 'CREDIT_CARD',
-    chargeType: cot.recorrente ? 'RECURRENT' : cot.forma === 'pix' ? 'DETACHED' : 'INSTALLMENT',
+    chargeType: cot.recorrente ? 'RECURRENT' : cot.forma === 'pix' || cot.servico ? 'DETACHED' : 'INSTALLMENT',
     externalReference: nsu,
     notificationEnabled: true,
     isAddressRequired: false,
@@ -86,19 +88,19 @@ export function corpoLink({ cot, id, nsu, origem, hoje = new Date() }) {
   return body;
 }
 
-async function criarLink(p) {
+export async function criarLink(p) {
   const j = await asaas('POST', '/paymentLinks', corpoLink(p));
   const url = [j.url, j.link, j.paymentUrl].find(ehLinkAsaas);
   if (!url) throw new Error('Resposta sem link do Asaas: ' + JSON.stringify(j).slice(0, 200));
   return url;
 }
 
-function textoPedido(r, cot, url) {
+export function textoPedido(r, cot, url) {
   const linhas = [
-    r.modo === 'plan' ? 'NOVO PEDIDO DE PLANO' : r.modo === 'contato' ? 'NOVA MENSAGEM DO SITE' : 'NOVO PEDIDO DO SITE',
+    r.origem === 'whatsapp' ? 'NOVO PEDIDO PELO WHATSAPP (IA)' : r.modo === 'plan' ? 'NOVO PEDIDO DE PLANO' : r.modo === 'contato' ? 'NOVA MENSAGEM DO SITE' : 'NOVO PEDIDO DO SITE',
     `Pedido: ${r.pedido}`,
-    cot ? `Plano ${cot.plano}${cot.rede ? ' + ' + cot.rede : ' (só Instagram)'} · ${cot.periodo} · ${cot.forma === 'pix' ? 'Pix' : 'Cartão'} · ${reais(cot.valorCentavos)}${cot.recorrente ? ' por mês' : ''}${cot.teste ? ' (TESTE)' : ''}` : '',
-    r.modo === 'service' ? `Serviço: ${SERVICOS[r.servico_id]?.nome}` : '',
+    cot && cot.servico ? `${cot.plano}${cot.qtd > 1 ? ' × ' + cot.qtd : ''} · ${cot.forma === 'pix' ? 'Pix' : 'Cartão'} · ${reais(cot.valorCentavos)}${cot.teste ? ' (TESTE)' : ''}` : cot ? `Plano ${cot.plano}${cot.rede ? ' + ' + cot.rede : ' (só Instagram)'} · ${cot.periodo} · ${cot.forma === 'pix' ? 'Pix' : 'Cartão'} · ${reais(cot.valorCentavos)}${cot.recorrente ? ' por mês' : ''}${cot.teste ? ' (TESTE)' : ''}` : '',
+    r.modo === 'service' && !(cot && cot.servico) ? `Serviço: ${SERVICOS[r.servico_id]?.nome}` : '',
     r.modo === 'custom' && r.sob_medida ? `Sob medida: ${r.sob_medida.stories} stories/semana, ${r.sob_medida.reels} Reels/mês, ${r.sob_medida.carr} carrosséis/mês, ${r.sob_medida.visita} visitas/mês` : '',
     '',
     `${r.nome}${r.empresa ? ' · ' + r.empresa : ''} ${r.instagram}`,
@@ -107,8 +109,9 @@ function textoPedido(r, cot, url) {
     r.aparecer && `Nos vídeos: ${r.aparecer}`, r.cidade && `Cidade: ${r.cidade}`,
     r.mensagem && `Mensagem: ${r.mensagem}`,
     '',
-    r.aceite ? `Aceite dos termos ${r.termos_versao} em ${r.recebido_em} · IP ${r.ip} · doc ${r.documento}` : '',
-    url ? 'Link de pagamento criado. Aguardando pagamento.' : r.modo === 'plan' ? `ATENÇÃO: link não criado (${r.erro_pagamento || 'sem detalhe'}). Mande o link manualmente.` : '',
+    r.aceite && r.origem === 'whatsapp' ? `Aceite dos termos ${r.termos_versao} por mensagem (${r.aceite_msg_id || 'sem id'}) em ${r.aceite_em}` : '',
+    r.aceite && r.origem !== 'whatsapp' ? `Aceite dos termos ${r.termos_versao} em ${r.recebido_em} · IP ${r.ip} · doc ${r.documento}` : '',
+    url ? 'Link de pagamento criado. Aguardando pagamento.' : cot ? `ATENÇÃO: link não criado (${r.erro_pagamento || 'sem detalhe'}). Mande o link manualmente.` : '',
   ];
   return linhas.filter((l) => l !== '' && l != null).join('\n').replace(/\n{3,}/g, '\n\n');
 }

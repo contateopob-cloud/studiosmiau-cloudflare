@@ -41,7 +41,7 @@ export function limpar(d) {
   const p = d && typeof d === 'object' ? d : {};
   return {
     sid: txt(p.sid, 24), modo: txt(p.modo, 12), termos_versao: txt(p.termos_versao, 40),
-    plano_id: txt(p.plano_id, 20), periodo_id: txt(p.periodo_id, 20), forma: txt(p.forma, 10), rede_extra: txt(p.rede_extra, 60), servico_id: txt(p.servico_id, 20),
+    plano_id: txt(p.plano_id, 20), periodo_id: txt(p.periodo_id, 20), forma: txt(p.forma, 10), rede_extra: txt(p.rede_extra, 60), servico_id: txt(p.servico_id, 20), quantidade: Math.max(1, Math.min(20, Math.floor(Number(p.quantidade)) || 1)),
     sob_medida: p.sob_medida && typeof p.sob_medida === 'object'
       ? Object.fromEntries(['stories', 'reels', 'carr', 'visita'].map((k) => [k, Math.max(0, Math.min(40, Number(p.sob_medida[k]) || 0))]))
       : null,
