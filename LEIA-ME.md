@@ -184,3 +184,6 @@ Para o cliente não desistir antes de pagar, o pedido no site ficou curto (plano
 ## Página de links para a bio do Instagram (/bio)
 Link para colar na bio: `https://studiosmiau.com.br/bio`. É uma página leve (sem scripts pesados) com "Monte o seu plano", os 3 planos, os serviços avulsos com preço, vídeos (só aparece se houver no portfólio) e WhatsApp. Cada botão abre direto o plano ou serviço no site, com `?o=bio` no endereço para identificar quem veio da bio.
 A página é gerada pelo `tools/build.py` com os preços, serviços e vagas do site: mudou algo no site, gere de novo. A foto é `public/img/equipe-bio.jpg`.
+
+## Ícones (SVG no lugar dos emojis)
+Os ícones do site são SVGs de linha, definidos em `IC` no `index.html` (planos, entregas, serviços, semana, botões da prévia, checks). Para trocar um, edite o desenho em `IC` no site-mestre e gere de novo (`tools/build.py`); a página `/bio` usa os mesmos ícones.
