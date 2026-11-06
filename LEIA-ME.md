@@ -187,3 +187,7 @@ A página é gerada pelo `tools/build.py` com os preços, serviços e vagas do s
 
 ## Ícones (SVG no lugar dos emojis)
 Os ícones do site são SVGs de linha, definidos em `IC` no `index.html` (planos, entregas, serviços, semana, botões da prévia, checks). Para trocar um, edite o desenho em `IC` no site-mestre e gere de novo (`tools/build.py`); a página `/bio` usa os mesmos ícones.
+
+## Imagem dos planos para o WhatsApp (1000x1000)
+`public/img/planos-whatsapp.png` (endereço: `https://studiosmiau.com.br/img/planos-whatsapp.png`) é feita em HTML com o padrão do site (`public/planos-whatsapp.html`, que também pode ser aberta no navegador) e exportada em PNG pelo `tools/build.py`, com os preços e itens atuais dos planos. Mudou preço ou plano no site: gere de novo e envie o PNG novo. Ao trocar a imagem, use um endereço com versão (ex.: `...png?v=2`) para o WhatsApp não mostrar a antiga em cache.
+Segurança: o arquivo é estático, servido pelo Cloudflare, e só muda por um deploy do repositório do GitHub. Proteja a conta do GitHub e do Cloudflare com verificação em duas etapas.
