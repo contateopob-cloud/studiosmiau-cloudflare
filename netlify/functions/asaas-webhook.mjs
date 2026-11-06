@@ -10,10 +10,11 @@ const ID = /^[A-Za-z0-9_-]{3,60}$/;
 
 // Do nome do link ("Studios Miau - Plano Médio 3 meses - SM-...") tira o produto, o tipo e o serviço.
 function produtoDoLink(nome) {
-  const p = String(nome || '').replace(/^Studios Miau - /, '').replace(/ - SM-[a-z0-9]+-\d+-[a-f0-9]+$/, '').trim().slice(0, 80);
+  const teste = /\(TESTE\)/.test(String(nome || ''));
+  const p = String(nome || '').replace(' (TESTE)', '').replace(/^Studios Miau - /, '').replace(/ - SM-[a-z0-9]+-\d+-[a-f0-9]+$/, '').trim().slice(0, 80);
   const plano = /^Plano /.test(p);
   const sv = plano ? '' : Object.keys(SERVICOS).find((k) => p.startsWith(SERVICOS[k].nome)) || '';
-  return { produto: p, tipo: plano ? 'plano' : 'servico', servico: sv, premium: /^Plano Premium/.test(p) };
+  return { produto: p, tipo: plano ? 'plano' : 'servico', servico: sv, premium: /^Plano Premium/.test(p), teste };
 }
 
 export default async (req) => {
@@ -69,9 +70,10 @@ export default async (req) => {
     return new Response('ok', { status: 200 });
   }
 
-  const titulo = evento === 'PAYMENT_RECEIVED' && forma === 'Cartão'
+  const pl0 = produtoDoLink(link.name);
+  const titulo = (pl0.teste ? '[TESTE] ' : '') + (evento === 'PAYMENT_RECEIVED' && forma === 'Cartão'
     ? 'SALDO DISPONÍVEL (cartão): o valor já está na conta Asaas'
-    : 'PAGAMENTO CONFIRMADO';
+    : 'PAGAMENTO CONFIRMADO');
   const nota = evento === 'PAYMENT_CONFIRMED' && forma === 'Cartão'
     ? 'Cartão aprovado. O saldo cai na conta em cerca de 32 dias.'
     : 'Confirmado direto no Asaas.';
@@ -88,7 +90,7 @@ export default async (req) => {
   ].join('\n');
   await Promise.allSettled([
     telegram(texto),
-    encaminhar({ evento: 'pagamento', titulo, pedido: pedido.id, forma, valor_centavos: valor, valor: reais(valor), parcela: pay.installmentNumber || 1, mensal: !!pay.subscription, cliente: quem, cobranca: payId, tipo_aviso: evento, produto: pl.produto, tipo: pl.tipo, briefing_url, texto }),
+    encaminhar({ evento: 'pagamento', titulo, pedido: pedido.id, forma, valor_centavos: valor, valor: reais(valor), parcela: pay.installmentNumber || 1, mensal: !!pay.subscription, cliente: quem, cobranca: payId, tipo_aviso: evento, produto: pl.produto, tipo: pl.tipo, briefing_url, ...(pl.teste ? { teste: true } : {}), texto }),
   ]);
   return new Response('ok', { status: 200 });
 };

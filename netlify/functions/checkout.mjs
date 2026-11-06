@@ -67,13 +67,13 @@ export default async (req, context) => {
 //   3/6/12m + cartão  -> total no cartão, em até N parcelas
 export function corpoLink({ cot, id, nsu, origem, hoje = new Date() }) {
   const fim = new Date(hoje.getTime() + 7 * 864e5).toISOString().slice(0, 10); // o link fecha em 7 dias
-  const rotulo = cot.servico ? `${cot.plano}${cot.qtd > 1 ? ' x' + cot.qtd : ''}` : `Plano ${cot.plano} ${cot.periodo}${cot.rede ? ' + ' + cot.rede : ''}`;
+  const rotulo = cot.servico ? `${cot.plano}${cot.qtd > 1 ? ' x' + cot.qtd : ''}` : `Plano ${cot.plano} ${cot.periodo}${cot.rede ? ' + ' + cot.rede : ''}` + (cot.teste ? ' (TESTE)' : '');
   const body = {
     name: `Studios Miau - ${rotulo} - ${nsu}`,
     description: cot.servico ? `${rotulo}. Pedido ${nsu}` : `Plano ${cot.plano}, ${cot.periodo}${cot.rede ? ', com ' + cot.rede : ''}. Pedido ${nsu}`,
     value: Number((cot.valorCentavos / 100).toFixed(2)),
     billingType: cot.forma === 'pix' ? 'PIX' : 'CREDIT_CARD',
-    chargeType: cot.recorrente ? 'RECURRENT' : cot.forma === 'pix' || cot.servico ? 'DETACHED' : 'INSTALLMENT',
+    chargeType: cot.recorrente ? 'RECURRENT' : cot.forma === 'pix' || cot.servico || cot.parcelas === 1 ? 'DETACHED' : 'INSTALLMENT',
     externalReference: nsu,
     notificationEnabled: true,
     isAddressRequired: false,

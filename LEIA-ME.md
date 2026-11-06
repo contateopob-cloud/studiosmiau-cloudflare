@@ -195,3 +195,6 @@ Segurança: o arquivo é estático, servido pelo Cloudflare, e só muda por um d
 ## Texto dos planos para a IA do WhatsApp (`GET /api/planos`)
 Com a senha do painel (`X-Painel-Token`), devolve `{ok, atualizado, versao, imagem, texto}`. O `texto` é montado na hora com os preços de `netlify/lib/precos.mjs` (a mesma tabela que cobra, sem o modo de teste) e as entregas do site (`netlify/lib/entregas.gen.mjs`, gerado pelo `tools/build.py`). `imagem` é o endereço da imagem dos planos com `?v=` novo sempre que o conteúdo muda. O build **para** se os preços do site e do `precos.mjs` divergirem.
 Ao mudar plano, entrega ou preço: edite o site e o `precos.mjs`, rode `python3 tools/build.py`, e suba o pacote. Nada mais precisa ser copiado para o painel.
+
+## Pedido de teste da equipe (`"teste": true`)
+No `POST /api/pedido-externo` (com a senha do painel), `"teste": true` cobra só o valor de teste: `TESTE_CENTAVOS` ou R$ 10,00 (o maior dos dois; o mínimo do Pix na conta) e não aplica o limite de 1 pedido por hora. Vale para `?simular=1` e para o pedido real. O link do Asaas leva "(TESTE)" no nome, nunca vira assinatura (mesmo no plano mensal) e o evento `pedido` e o evento `pagamento` seguem ao painel com `"teste": true`. Sem `teste: true` (ou com qualquer valor que não seja o booleano true), nada muda.

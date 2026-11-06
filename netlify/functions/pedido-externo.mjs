@@ -29,6 +29,10 @@ export default async (req, context) => {
   try { bruto = await req.json(); } catch { return json({ ok: false, erro: 'Pedido inválido.' }, 400); }
   const c = limpar(bruto);
   const simular = new URL(req.url).searchParams.get('simular') === '1';
+  // Teste da equipe: o painel manda "teste": true (já com a senha conferida). Cobra o valor de teste (TESTE_CENTAVOS ou R$ 10,00,
+  // o mínimo do Pix da conta) e não aplica o limite de 1 pedido por hora. O resto do caminho é igual ao do cliente.
+  const teste = bruto && bruto.teste === true;
+  const opcTeste = teste ? { testeCentavos: Math.max(1000, Number(process.env.TESTE_CENTAVOS || 0)) } : {};
 
   if (c.plano_id === 'sob medida' || c.plano_id === 'sob_medida' || c.plano_id === 'custom') return json({ ok: false, erro: 'Plano sob medida é com a equipe.' }, 422);
   const avulso = !!c.servico_id;
@@ -37,10 +41,10 @@ export default async (req, context) => {
   if (!avulso && !Object.hasOwn(PLANOS, c.plano_id)) return json({ ok: false, erro: 'Plano inválido.' }, 400);
   const periodo = avulso ? '' : PERIODOS[c.periodo_id];
   const forma = FORMAS[c.forma.toLowerCase()];
-  const cot = avulso ? cotacaoServico(c.servico_id, Number(bruto?.quantidade ?? 1), forma) : periodo && forma ? cotacao(c.plano_id, periodo, forma, c.rede_extra) : null;
+  const cot = avulso ? cotacaoServico(c.servico_id, Number(bruto?.quantidade ?? 1), forma, opcTeste) : periodo && forma ? cotacao(c.plano_id, periodo, forma, c.rede_extra, opcTeste) : null;
   if (!cot) return json({ ok: false, erro: avulso ? 'Serviço, quantidade ou forma de pagamento inválidos.' : 'Plano, período ou forma de pagamento inválidos.' }, 400);
 
-  const resumo = { valor_cobrado: reais(cot.valorCentavos), valor_centavos: cot.valorCentavos, plano: cot.plano, periodo: cot.periodo, forma: cot.forma, recorrente: cot.recorrente, parcelas: cot.forma === 'cartao' ? cot.parcelas : 1 };
+  const resumo = { valor_cobrado: reais(cot.valorCentavos), valor_centavos: cot.valorCentavos, plano: cot.plano, periodo: cot.periodo, forma: cot.forma, recorrente: cot.recorrente, parcelas: cot.forma === 'cartao' ? cot.parcelas : 1, ...(teste ? { teste: true } : {}) };
   if (simular) return json({ ok: true, simulacao: true, ...resumo });
 
   // ---- dados do cliente ----
@@ -54,12 +58,12 @@ export default async (req, context) => {
   if (!EMAIL.test(c.email)) return json({ ok: false, erro: 'E-mail inválido.' }, 400);
   if (!a || !t(a.texto_versao, 40) || !t(a.em, 40)) return json({ ok: false, erro: 'Falta o aceite dos termos (texto_versao e em).' }, 400);
 
-  const cache = cacheTrava(), chaveTrava = cache ? await travaChave(fone) : null;
+  const cache = teste ? null : cacheTrava(), chaveTrava = cache ? await travaChave(fone) : null;
   if (cache && await cache.match(chaveTrava)) return json({ ok: false, erro: 'Já existe um pedido recente deste número. Chame a equipe.' }, 429);
 
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const registro = {
-    ...c, pedido: id, recebido_em: new Date().toISOString(), modo: avulso ? 'service' : 'plan', origem: 'whatsapp', sid: '', plano_id: avulso ? '' : c.plano_id, periodo_id: periodo, forma: cot.forma,
+    ...c, pedido: id, recebido_em: new Date().toISOString(), modo: avulso ? 'service' : 'plan', origem: 'whatsapp', ...(teste ? { teste: true } : {}), sid: '', plano_id: avulso ? '' : c.plano_id, periodo_id: periodo, forma: cot.forma,
     aceite: true, termos_versao: t(a.texto_versao, 40), aceite_msg_id: t(a.msg_id, 80), aceite_em: t(a.em, 40), aceite_canal: 'whatsapp',
     ip: '', ip_cidade: '', ip_regiao: '', ip_pais: '', rede: '', ua: '', eq: '', // quem chama é o painel, não o cliente
   };
