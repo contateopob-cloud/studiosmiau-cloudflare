@@ -836,7 +836,7 @@ const CFG={
   area:['Belém','Ananindeua','Barcarena','Santa Izabel','Bujaru'],
   redeExtra:{start:210,essencial:360,medio:510,completo:750}, // PROVISÓRIO: valor por mês de cada rede a mais
   redes:['TikTok','Facebook','YouTube Shorts'],
-  floor:1197, visitaExtra:500,
+  visitaExtra:500, // o valor mínimo do plano sob medida é o do plano pronto mais barato (calculado em calc())
   unit:{base:200,story:8,reel:320,carr:150,visita:500}, // sob medida: cada peça por mês (stories = por semana x 4); calibrado para nunca sair abaixo do plano equivalente
   // taxa = taxa do cartão do Asaas + antecipação (receber em até 2 dias), embutidas no preço do cartão e arredondadas para cima. Mesmos valores de precos.mjs.
   periods:[
@@ -1189,9 +1189,11 @@ function calc(){
   const U=CFG.unit, n={stories:v.stories*4,reels:v.reels,carr:v.carr,visita:v.visita};
   const empty=!(n.stories||n.reels||n.carr||n.visita);
   const raw=empty?0:U.base+n.stories*U.story+n.reels*U.reel+n.carr*U.carr+n.visita*U.visita;
-  const pix=empty?0:Math.round(Math.max(raw,CFG.floor)/10)*10;
-  const plan=empty?null:CFG.plans.filter(p=>p.price<pix&&MONTE.every(m=>p.spec[m.id]>=v[m.id])).sort((a,b)=>a.price-b.price)[0]||null;
-  return {v,n,empty,pix,card:cardOf(pix),floored:!empty&&raw<CFG.floor,plan};
+  const FLOOR=Math.min(...CFG.plans.map(p=>p.price));
+  const pix=empty?0:(raw<FLOOR?FLOOR:Math.round(raw/10)*10);
+  // plano pronto que já cobre o pedido (visitas a mais entram como extra) e não custa mais que o sob medida
+  const alt=empty?null:CFG.plans.filter(p=>['stories','reels','carr'].every(k=>p.spec[k]>=v[k])).map(p=>{const ex=Math.max(0,v.visita-p.spec.visita);return {p,ex,cost:p.price+ex*CFG.visitaExtra};}).filter(a=>a.cost<=pix).sort((a,b)=>a.cost-b.cost)[0]||null;
+  return {v,n,empty,pix,card:cardOf(pix),floored:!empty&&raw<FLOOR,plan:alt&&alt.p,planEx:alt?alt.ex:0,planCost:alt?alt.cost:0};
 }
 function updateMonte(){
   const c=curCalc=calc();
@@ -1205,7 +1207,7 @@ function updateMonte(){
     :`<h2>Seu plano</h2><ul>${L.map(l=>`<li>${l}</li>`).join('')}</ul>
       <div class="bigp"><span>a partir de R$</span><b>${fmt(c.pix)}</b><span>/mês no Pix</span></div>
       <p class="sub">No cartão: ${brl(c.card)}/mês${c.floored?' · valor mínimo do plano sob medida':''}</p>
-      ${c.plan?`<p class="sug">O plano ${c.plan.name} já inclui tudo isso por ${brl(c.plan.price)}/mês. <a href="#produto-plano-${c.plan.id}">Ver o plano</a></p>`:''}
+      ${c.plan?`<p class="sug">${c.planEx?`O plano ${c.plan.name}, com ${c.planEx} visita${c.planEx>1?'s':''} técnica${c.planEx>1?'s':''} a mais (${brl(CFG.visitaExtra)} cada), cobre tudo isso por ${brl(c.planCost)}/mês.`:`O plano ${c.plan.name} já inclui tudo isso por ${brl(c.planCost)}/mês.`} <a href="#produto-plano-${c.plan.id}">Ver o plano</a></p>`:''}
       <button type="button" class="btn btn-primary btn-block" data-ask>Pedir proposta</button>
       <p class="sub">A equipe confirma o valor antes de cobrar.</p>`;
   $('#minibar').innerHTML=c.empty?'<div><small>Seu plano</small><b>—</b></div><button type="button" class="btn btn-primary" disabled>Pedir proposta</button>'

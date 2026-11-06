@@ -207,4 +207,4 @@ Plano de entrada: 1 Reels por mês, 4 stories por semana, organização do perfi
 - Aparece sozinho em: lista de planos, tabela de comparação, página `/bio`, imagem dos planos do WhatsApp (agora em 2x2) e `/api/planos`.
 - Na página de **Edição de vídeo** ele é recomendado como "assessoria mais barata". Com 2 ou mais vídeos no carrinho, o texto compara o valor dos vídeos com o do Start.
 - Para mudar o preço: `CFG.plans` (id `start`) no `index.html` **e** `start` em `netlify/lib/precos.mjs`. O build para se os dois divergirem.
-- O plano sob medida continua começando em R$ 1.197 (`CFG.floor`).
+- O valor mínimo do plano sob medida é o do plano pronto mais barato (hoje o Start, R$ 697), calculado sozinho. Quando um plano pronto já cobre o que a pessoa montou (visitas a mais entram como extra de R$ 500) e não custa mais, o site mostra essa sugestão.
