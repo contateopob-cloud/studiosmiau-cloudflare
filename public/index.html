@@ -940,12 +940,11 @@ const Q={
   aceite:{q:'Confira e confirme',accept:true}
 };
 const FLOWS={
-  plan:['objetivo','segmento','conta','agencia','experiencia','aparecer','cidade','dados','periodo','forma','aceite'],
+  plan:['segmento','aparecer','cidade','dados','periodo','forma','aceite'], // objetivo, conta, agência e experiência: formulário depois do pagamento (/b/)
   custom:['objetivo','segmento','conta','agencia','experiencia','aparecer','cidade','dados','aceite'],
-  service:['segmento','pedido','dados','forma','aceite'],
-  serviceVideo:['segmento','aparecer','pedido','dados','forma','aceite'],
-  serviceMusic:['segmento','estilo','referencias','conteudo','dados','forma','aceite'],
-  contato:['mensagem','dados']
+  service:['segmento','pedido','dados','aceite'], // só o site completo (sob proposta)
+  servicoPago:['segmento','dados','forma','aceite'], // detalhes do pedido: formulário depois do pagamento (/b/)
+      contato:['mensagem','dados']
 };
 const MONTE=[
   {id:'stories',label:'Stories por semana',min:0,max:25,val:10,hint:v=>v?`≈ ${v*4} stories por mês`:'Nenhum story'},
@@ -1094,7 +1093,7 @@ function renderProduct(key){
     const qd=QTD[r.id]?qtdOf(r.id):1, tot=r.price*qd;
     top=r.price?`<div class="bigp"><span>R$</span><b>${fmt(tot)}</b><span>no Pix</span></div><p class="sub">${qd>1?`${qd} × ${brl(r.price)} · `:''}No cartão: ${brl(cardOf(tot))}${unidadeTxt(r)?' · '+unidadeTxt(r):''}</p>${QTD[r.id]?`<div class="qty" role="group" aria-label="${QTD[r.id].label}"><span class="qty-l">${QTD[r.id].label}</span><div class="qty-c"><button type="button" data-qty="-1" aria-label="Diminuir a quantidade"${qd<=1?' disabled':''}>−</button><output aria-live="polite">${qd}</output><button type="button" data-qty="1" aria-label="Aumentar a quantidade"${qd>=QTD[r.id].max?' disabled':''}>+</button></div></div>`:''}`:`<div class="bigp"><b style="font-size:2rem">Sob proposta</b></div>`;
     rows.push('<div class="pv-row hl">Sem mensalidade: você paga só o que pedir</div>');
-    rows.push(r.price?'<div class="pv-row">Depois do pagamento, a equipe chama você no WhatsApp em até 24 horas para pegar o que falta para produzir</div>':'<div class="pv-row">A equipe confirma os detalhes e o valor antes de cobrar</div>');
+    rows.push(r.price?'<div class="pv-row">Depois do pagamento, você recebe um formulário rápido no WhatsApp e a equipe chama você em até 24 horas</div>':'<div class="pv-row">A equipe confirma os detalhes e o valor antes de cobrar</div>');
     inc=`<li>${r.desc}</li>`+(r.items||[]).map(x=>`<li>${x}</li>`).join('');
     if(r.extra) rows.push(`<div class="pv-row">${r.extra.t} <a href="${r.extra.href}" style="font-weight:700;color:var(--accent)">${r.extra.l} ›</a></div>`);
     buy=`<button type="button" class="bb-buy" data-svc="${r.id}">${r.price?(qd>1?`Contratar ${qd} ${QTD[r.id].vs}`:'Contratar este serviço'):'Pedir orçamento do site'}<b>${r.price?brl(tot):'Sob proposta'}</b></button>`;
@@ -1255,8 +1254,8 @@ function ctxLine(){
 function openFlow(o){
   F={mode:o.mode,plan:o.plan,base:o.plan,service:o.service,qtd:o.qtd||1,custom:o.custom,period:state.period,ans:{},echo:'',i:0};
   if(o.redes&&o.redes.length){F.redes=o.redes;F.plan=Object.assign({},o.plan,{price:o.plan.price+o.redes.length*CFG.redeExtra[o.plan.id]});F.ans.rede='Instagram + '+o.redes.join(' + ');}
-  F.flow=FLOWS[o.mode==='service'&&o.service.video?'serviceVideo':o.mode==='service'&&o.service.id==='musica'?'serviceMusic':o.mode];
-  if(o.mode==='service'&&!o.service.price) F.flow=F.flow.filter(k=>k!=='forma');
+  F.flow=FLOWS[o.mode==='service'&&o.service.price?'servicoPago':o.mode].slice();
+  if(o.mode==='plan'&&!(o.plan.spec&&o.plan.spec.visita)) F.flow=F.flow.filter(k=>k!=='cidade'); // a cidade só importa para a visita técnica (Premium)
   track('abrir',leadInfo());
   show();
   if(!dlg.open) dlg.showModal();
@@ -1343,7 +1342,7 @@ function recap(){
   }
   [['Objetivo','objetivo'],['Ramo','segmento'],['Estilo','estilo'],['Nos vídeos','aparecer'],['Cidade','cidade'],['Empresa','empresa'],['WhatsApp','whatsapp']].forEach(r=>{if(a[r[1]])rows.push([r[0],a[r[1]]]);});
   const far=farCity();
-  return `<div class="recap">${price}<dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>${far?`<p class="warn">A visita técnica só é feita em ${areaTxt()}. Fale com a gente antes de pagar para ajustar o plano.</p>`:F.mode==='plan'?`<p class="sub" style="margin-top:12px">Depois do pagamento, a gente chama você no WhatsApp em até 24 horas para combinar o acesso à conta e começar.</p>`:F.mode==='service'&&F.service.price?`<p class="sub" style="margin-top:12px">Depois do pagamento, a gente chama você no WhatsApp em até 24 horas para pegar o que falta para produzir.</p>`:''}</div>`;
+  return `<div class="recap">${price}<dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>${far?`<p class="warn">A visita técnica só é feita em ${areaTxt()}. Fale com a gente antes de pagar para ajustar o plano.</p>`:F.mode==='plan'?`<p class="sub" style="margin-top:12px">Depois do pagamento, você recebe no WhatsApp um formulário rápido, e a gente chama você em até 24 horas para combinar o acesso à conta e começar.</p>`:F.mode==='service'&&F.service.price?`<p class="sub" style="margin-top:12px">Depois do pagamento, você recebe no WhatsApp um formulário rápido com os detalhes do pedido, e a gente chama você em até 24 horas.</p>`:''}</div>`;
 }
 function next(){F.i++; if(F.i>=F.flow.length){submit();return;} show();}
 function answer(key,val){F.ans[key]=val;
@@ -1435,7 +1434,7 @@ function done(res,payload){
   if(res&&res.ok){
     F.fim=true;
     if(res.pagamento_url&&isPayUrl(res.pagamento_url)){
-      h=chat(`Tudo certo, ${esc(nome)}! Agora é só pagar.`)+`<p class="muted">O pagamento abre na página segura do Asaas. Lá você confirma seus dados (nome e CPF ou CNPJ) e paga. Confira se o endereço tem <b>asaas.com</b>. Depois que o pagamento for confirmado, a gente chama você no WhatsApp em até 24 horas ${F.mode==='service'?'para pegar o que falta para produzir':'para combinar o acesso à conta e começar'}.</p>
+      h=chat(`Tudo certo, ${esc(nome)}! Agora é só pagar.`)+`<p class="muted">O pagamento abre na página segura do Asaas. Lá você confirma seus dados (nome e CPF ou CNPJ) e paga. Confira se o endereço tem <b>asaas.com</b>. Depois que o pagamento for confirmado, você recebe no WhatsApp um formulário rápido (uns 3 minutos) e a gente chama você em até 24 horas ${F.mode==='service'?'para começar a produzir':'para combinar o acesso à conta e começar'}.</p>
         <a class="btn btn-primary btn-block" style="margin-top:16px" href="${esc(res.pagamento_url)}" target="_top" rel="noopener noreferrer">Ir para o pagamento</a>`;
     }else{
       h=chat(`Recebemos, ${esc(nome)}!`)+`<p class="muted">${F.mode==='contato'||farCity()?'A gente responde no seu WhatsApp em breve para ajustar o plano.':F.mode==='plan'?'A equipe vai mandar o link de pagamento no seu WhatsApp.':'A equipe confere o pedido e manda o valor final e o link de pagamento no seu WhatsApp.'}</p>`;

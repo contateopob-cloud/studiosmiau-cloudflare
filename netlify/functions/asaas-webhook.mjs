@@ -2,10 +2,19 @@
 // 1) o token secreto (cabeçalho asaas-access-token) tem de bater;
 // 2) o pagamento é relido direto na API do Asaas (status e valor);
 // 3) o link que originou o pagamento precisa ter o número de pedido assinado por nós.
-import { tokenWebhookOk, verificarPedido, NSU_REGEX, telegram, encaminhar, reais, asaas } from '../lib/util.mjs';
+import { tokenWebhookOk, verificarPedido, NSU_REGEX, telegram, encaminhar, reais, asaas, assinarBriefing } from '../lib/util.mjs';
+import { SERVICOS } from '../lib/precos.mjs';
 
 const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
 const ID = /^[A-Za-z0-9_-]{3,60}$/;
+
+// Do nome do link ("Studios Miau - Plano Médio 3 meses - SM-...") tira o produto, o tipo e o serviço.
+function produtoDoLink(nome) {
+  const p = String(nome || '').replace(/^Studios Miau - /, '').replace(/ - SM-[a-z0-9]+-\d+-[a-f0-9]+$/, '').trim().slice(0, 80);
+  const plano = /^Plano /.test(p);
+  const sv = plano ? '' : Object.keys(SERVICOS).find((k) => p.startsWith(SERVICOS[k].nome)) || '';
+  return { produto: p, tipo: plano ? 'plano' : 'servico', servico: sv, premium: /^Plano Premium/.test(p) };
+}
 
 export default async (req) => {
   if (req.method !== 'POST') return new Response('', { status: 405 });
@@ -66,15 +75,20 @@ export default async (req) => {
   const nota = evento === 'PAYMENT_CONFIRMED' && forma === 'Cartão'
     ? 'Cartão aprovado. O saldo cai na conta em cerca de 32 dias.'
     : 'Confirmado direto no Asaas.';
+  // Link do formulário de início (briefing). É o mesmo em todos os avisos do pedido (parcelas, meses): o painel manda uma vez só.
+  const pl = produtoDoLink(link.name);
+  const origem = process.env.SITE_ORIGEM || new URL(req.url).origin;
+  const briefing_url = `${origem}/b/${assinarBriefing({ i: pedido.id, n: quem.split(' ')[0] || '', p: pl.produto, t: pl.tipo, s: pl.servico, v: pl.premium ? 1 : 0 })}`;
   const texto = [
     titulo,
     `Pedido: ${pedido.id}`,
     `${forma} · ${reais(valor)}${parcela}${mensal}${quem ? ' · ' + quem : ''}`,
     nota,
+    `Formulário de início do cliente: ${briefing_url}`,
   ].join('\n');
   await Promise.allSettled([
     telegram(texto),
-    encaminhar({ evento: 'pagamento', titulo, pedido: pedido.id, forma, valor_centavos: valor, valor: reais(valor), parcela: pay.installmentNumber || 1, mensal: !!pay.subscription, cliente: quem, cobranca: payId, tipo_aviso: evento, texto }),
+    encaminhar({ evento: 'pagamento', titulo, pedido: pedido.id, forma, valor_centavos: valor, valor: reais(valor), parcela: pay.installmentNumber || 1, mensal: !!pay.subscription, cliente: quem, cobranca: payId, tipo_aviso: evento, produto: pl.produto, tipo: pl.tipo, briefing_url, texto }),
   ]);
   return new Response('ok', { status: 200 });
 };

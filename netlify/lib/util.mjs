@@ -29,6 +29,21 @@ export function verificarPedido(nsu) {
   return igual(sig, hmac(`${id}.${cents}`).slice(0, 16)) ? { id, pixCentavos: Number(cents), nsu: m[0] } : null;
 }
 
+// Link do formulário pós-pagamento (briefing): só o servidor consegue assinar, e só é entregue quando o pagamento é confirmado.
+// O conteúdo (pedido, primeiro nome, produto) vai dentro do próprio link; ninguém consegue inventar ou alterar um.
+export function assinarBriefing(d) {
+  const corpo = Buffer.from(JSON.stringify(d)).toString('base64url');
+  return `${corpo}.${hmac('briefing.' + corpo).slice(0, 24)}`;
+}
+export function verificarBriefing(tok) {
+  const m = /^([A-Za-z0-9_-]{8,700})\.([a-f0-9]{24})$/.exec(String(tok || ''));
+  if (!m || !igual(m[2], hmac('briefing.' + m[1]).slice(0, 24))) return null;
+  try {
+    const d = JSON.parse(Buffer.from(m[1], 'base64url').toString());
+    return d && typeof d === 'object' && typeof d.i === 'string' ? d : null;
+  } catch { return null; }
+}
+
 // O Asaas manda o token que vocês cadastraram no cabeçalho "asaas-access-token".
 export const tokenWebhookOk = (t) => {
   const esperado = process.env.ASAAS_WEBHOOK_TOKEN || '';

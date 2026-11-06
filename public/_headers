@@ -9,3 +9,11 @@
 /p/*
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
+
+/b/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+
+/termos*
+  X-Robots-Tag: noindex

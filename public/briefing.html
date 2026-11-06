@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Formulário de início · Studios Miau</title>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="theme-color" content="#D6245F">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Plus+Jakarta+Sans:wght@400..800&display=swap">
+<style>
+:root{--bg:#fff;--surface2:#F4F3F8;--ink:#17142A;--muted:#5B5873;--line:#E5E3EE;--accent:#D6245F;--accent-soft:#FDECF2;--ok:#12805C;--err:#B3261E;--amber:#FFC93C;
+--f-display:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;--f-body:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#14121F;--surface2:#211E33;--ink:#F4F2FF;--muted:#B5B1CC;--line:#35314D;--accent:#FF5C8D;--accent-soft:#3A1E2D;--ok:#4FD1A5;--err:#FF8A80}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--accent)}
+main{max-width:620px;margin:0 auto;padding:28px 16px calc(40px + env(safe-area-inset-bottom,0px))}
+h1{font:800 clamp(1.7rem,6vw,2.3rem)/1.08 var(--f-display);letter-spacing:-.015em;margin:14px 0 8px;text-wrap:balance}
+.brand{display:flex;align-items:center;gap:10px;font:800 1.05rem var(--f-display)}
+.brand i{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center}
+.brand svg{width:20px;height:20px;fill:#fff}
+.ok-pill{display:inline-flex;gap:6px;align-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.85rem;padding:5px 12px;border-radius:99px}
+.lead{color:var(--muted);margin:0 0 22px}
+.q{margin:0 0 22px;border:0;padding:0}
+.q>label,.q>legend{display:block;font-weight:700;margin:0 0 4px;padding:0}
+.q small{display:block;color:var(--muted);font-weight:500;margin:0 0 8px;font-size:.88rem}
+.req{color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label{padding:11px 15px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;font-weight:600;font-size:.95rem;min-height:44px;display:inline-flex;align-items:center}
+.chips input:checked+label{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chips input:focus-visible+label{outline:3px solid var(--amber);outline-offset:2px}
+input[type=text],textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px}
+textarea{min-height:92px;resize:vertical}
+input[type=text]:focus,textarea:focus{outline:3px solid var(--amber);outline-offset:1px;border-color:var(--accent)}
+.sub{margin-top:8px}
+.btn{display:flex;justify-content:center;align-items:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:14px;background:var(--accent);color:#fff;font:700 1rem var(--f-body);cursor:pointer;text-decoration:none}
+.btn[disabled]{opacity:.6;cursor:wait}
+.btn.ghost{background:var(--surface2);color:var(--ink);margin-top:10px}
+.err{color:var(--err);font-weight:600;margin:10px 0 0}
+.card{background:var(--surface2);border-radius:16px;padding:18px}
+.muted{color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main id="app"><p class="muted">Carregando…</p></main>
+<script>
+(function(){
+'use strict';
+var app=document.getElementById('app');
+var TOKEN=decodeURIComponent((location.pathname.split('/b/')[1]||'').split('/')[0]);
+var GATO='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28V6l8 7h8l8-7v22z"/></svg>';
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+var store={get:function(k){try{return localStorage.getItem(k);}catch(e){return null;}},set:function(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+var KEY='miau_briefing_'+TOKEN.slice(-16);
+
+// ---- perguntas: {k, q, t:'chips'|'text'|'area', o:[opções], outro:true, req:true, h:'dica', show:fn(resp)} ----
+var OBJ=['Mais clientes','Ser mais conhecido na cidade','Vender mais com vídeo','Lançar um produto ou serviço'];
+var PRAZO=['Sem pressa','Nesta semana','Tenho uma data'];
+function perguntas(d){
+  var L=[];
+  if(d.tipo==='plano'){
+    L.push({k:'objetivo',q:'O que você mais quer com o Instagram?',t:'chips',o:OBJ,outro:'Outro objetivo',req:true});
+    L.push({k:'conta',q:'A sua empresa já tem Instagram?',t:'chips',o:['Já tem e está ativo','Tem, mas está parado','Ainda não tem'],req:true});
+    L.push({k:'agencia',q:'Você já contratou alguma empresa de marketing?',t:'chips',o:['Nunca contratei','Já contratei e gostei','Já contratei e não gostei']});
+    L.push({k:'experiencia',q:'Como foi a sua experiência?',h:'O que funcionou, o que faltou, o que você não quer que se repita.',t:'area',show:function(r){return r.agencia==='Já contratei e não gostei';}});
+    if(!d.premium) L.push({k:'cidade',q:'Em qual cidade fica a empresa?',t:'chips',o:['Belém','Ananindeua','Barcarena','Santa Izabel','Bujaru'],outro:'Outra cidade'});
+    L.push({k:'admira',q:'Tem perfis ou vídeos que você admira?',h:'Cole links ou @. Ajuda a gente a acertar o estilo.',t:'area'});
+    L.push({k:'evitar',q:'Algo que a gente deve evitar ou nunca esquecer?',t:'area'});
+    L.push({k:'detalhe',q:'Quer contar mais alguma coisa?',h:'O momento do seu negócio, o que já tentou, o que espera.',t:'area'});
+    return L;
+  }
+  var s=d.servico;
+  if(s==='video'){
+    L.push({k:'pedido',q:'O que você precisa nesse vídeo?',h:'Ex.: vídeo de lançamento, mostrar o produto, corte de depoimento.',t:'area',req:true});
+    L.push({k:'material',q:'Link do vídeo bruto',h:'Google Drive, WeTransfer ou similar. Se preferir, mande pelo WhatsApp.',t:'text'});
+    L.push({k:'referencia',q:'Algum vídeo ou perfil de referência?',t:'area'});
+  }else if(s==='carrossel'||s==='pacote4'){
+    L.push({k:'pedido',q:s==='pacote4'?'Qual o tema de cada um dos 4 carrosséis?':'Qual o tema do carrossel?',t:'area',req:true});
+    L.push({k:'textos',q:'Já tem textos ou ideias?',h:'Pode colar aqui ou mandar pelo WhatsApp.',t:'area'});
+    L.push({k:'marca',q:'Link do logo e das cores da marca',h:'Se não tiver, a gente usa o que está no seu Instagram.',t:'text'});
+  }else if(s==='auditoria'){
+    L.push({k:'perfil',q:'Qual é o @ do perfil?',t:'text',req:true});
+    L.push({k:'pedido',q:'O que mais te incomoda hoje no perfil?',t:'area'});
+  }else if(s==='layout'){
+    L.push({k:'pedido',q:'Quais seções o site precisa ter?',h:'Ex.: início, serviços, sobre, contato.',t:'area',req:true});
+    L.push({k:'referencia',q:'Sites que você gosta (links)',t:'area'});
+    L.push({k:'marca',q:'Link do logo e das cores da marca',t:'text'});
+  }else if(s==='musica'){
+    L.push({k:'estilo',q:'Qual estilo de música você prefere?',t:'chips',o:['Pop','Sertanejo','Pagode','Forró','Brega paraense','Rap','Deixo com vocês'],outro:'Outro estilo'});
+    L.push({k:'conteudo',q:'O que você mais quer falar na música?',h:'O endereço, o WhatsApp, os benefícios, o que não pode faltar na letra.',t:'area',req:true});
+    L.push({k:'referencias',q:'Tem alguma música de referência?',h:'Link ou nome. Se não tiver, a gente decide.',t:'area'});
+  }else{
+    L.push({k:'pedido',q:'O que você precisa?',t:'area',req:true});
+  }
+  if(s!=='auditoria') L.push({k:'prazo',q:'Tem prazo?',t:'chips',o:PRAZO});
+  return L;
+}
+
+var D=null,P=[],R={};
+function load(){try{R=JSON.parse(store.get(KEY)||'{}')||{};}catch(e){R={};}}
+function save(){store.set(KEY,JSON.stringify(R));}
+function draw(){
+  var rows=P.filter(function(p){return !p.show||p.show(R);}).map(function(p,i){
+    var id='q_'+p.k, v=R[p.k]||'', h=p.h?'<small id="h_'+id+'">'+esc(p.h)+'</small>':'';
+    var tt=esc(p.q)+(p.req?' <span class="req" aria-hidden="true">*</span>':'');
+    if(p.t==='chips'){
+      var opts=p.o.concat(p.outro?['__outro']:[]).map(function(o){
+        var lbl=o==='__outro'?p.outro:o, on=o==='__outro'?(v&&p.o.indexOf(v)<0):v===o;
+        return '<input type="radio" name="'+id+'" id="'+id+'_'+esc(o)+'" value="'+esc(o)+'"'+(on?' checked':'')+'><label for="'+id+'_'+esc(o)+'">'+esc(lbl)+'</label>';
+      }).join('');
+      var outroOn=p.outro&&v&&p.o.indexOf(v)<0;
+      return '<fieldset class="q" data-k="'+p.k+'"><legend>'+tt+'</legend>'+h+'<div class="chips">'+opts+'</div>'+(p.outro?'<div class="sub" id="o_'+id+'"'+(outroOn?'':' hidden')+'><input type="text" maxlength="80" aria-label="'+esc(p.outro)+'" value="'+(outroOn?esc(v):'')+'" data-outro="'+p.k+'"></div>':'')+'</fieldset>';
+    }
+    if(p.t==='area') return '<div class="q" data-k="'+p.k+'"><label for="'+id+'">'+tt+'</label>'+h+'<textarea id="'+id+'" maxlength="1500" data-f="'+p.k+'">'+esc(v)+'</textarea></div>';
+    return '<div class="q" data-k="'+p.k+'"><label for="'+id+'">'+tt+'</label>'+h+'<input type="text" id="'+id+'" maxlength="300" data-f="'+p.k+'" value="'+esc(v)+'"></div>';
+  }).join('');
+  var nome=D.nome?', '+esc(D.nome):'';
+  app.innerHTML='<div class="brand"><i>'+GATO+'</i>Studios Miau</div>'
+   +'<h1>Falta pouco'+nome+'!</h1><p style="margin:0 0 12px"><span class="ok-pill">✓ Pagamento confirmado</span></p>'
+   +'<p class="lead">Responda o que puder. Leva uns 3 minutos e ajuda a gente a acertar de primeira'+(D.produto?' no seu <b>'+esc(D.produto)+'</b>':'')+'. O que você pular, a gente pergunta no WhatsApp.</p>'
+   +'<form id="f" novalidate>'+rows+'<p class="err" id="err" role="alert" hidden></p><button class="btn" type="submit" id="go">Enviar respostas</button></form>';
+}
+function finish(){
+  var num=''; 
+  fetch('/api/config').then(function(r){return r.json();}).catch(function(){return {};}).then(function(c){
+    var w=c&&c.whatsapp?'<a class="btn ghost" href="https://wa.me/'+c.whatsapp+'" rel="noopener">Falar com a equipe no WhatsApp</a>':'';
+    app.innerHTML='<div class="brand"><i>'+GATO+'</i>Studios Miau</div><h1>Recebido'+(D.nome?', '+esc(D.nome):'')+'!</h1>'
+     +'<div class="card"><p style="margin:0">A equipe já viu as suas respostas e chama você no WhatsApp em até 24 horas.</p></div>'
+     +'<button class="btn ghost" type="button" id="again">Corrigir alguma resposta</button>'+w;
+    document.getElementById('again').onclick=function(){draw();bind();};
+  });
+}
+function bind(){
+  var f=document.getElementById('f');
+  f.addEventListener('input',function(e){
+    var t=e.target;
+    if(t.dataset.f){R[t.dataset.f]=t.value;save();}
+    if(t.dataset.outro){R[t.dataset.outro]=t.value.trim();save();}
+  });
+  f.addEventListener('change',function(e){
+    var t=e.target;if(t.type!=='radio')return;
+    var k=t.name.slice(2), p=P.filter(function(x){return x.k===k;})[0];
+    if(t.value==='__outro'){R[k]='';var b=document.getElementById('o_'+t.name);b.hidden=false;b.querySelector('input').focus();}
+    else{R[k]=t.value;var b2=document.getElementById('o_'+t.name);if(b2)b2.hidden=true;}
+    save();
+    if(P.some(function(x){return x.show;})){var ph=document.getElementById('f').scrollTop;draw();bind();}
+  });
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var vis=P.filter(function(p){return !p.show||p.show(R);}), err=document.getElementById('err');
+    for(var i=0;i<vis.length;i++){var p=vis[i];if(p.req&&!String(R[p.k]||'').trim()){err.textContent='Falta responder: '+p.q;err.hidden=false;var el=document.querySelector('[data-k="'+p.k+'"]');if(el)el.scrollIntoView({block:'center'});return;}}
+    var itens=vis.map(function(p){return {k:p.k,q:p.q,a:String(R[p.k]||'').trim()};}).filter(function(x){return x.a&&x.a!=='__outro';});
+    if(!itens.length){err.textContent='Responda pelo menos uma pergunta.';err.hidden=false;return;}
+    var b=document.getElementById('go');b.disabled=true;b.textContent='Enviando…';err.hidden=true;
+    fetch('/api/briefing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t:TOKEN,r:itens})})
+      .then(function(r){return r.json();}).catch(function(){return {ok:false,erro:'Sem conexão. Tente de novo.'};})
+      .then(function(j){if(j&&j.ok){finish();}else{b.disabled=false;b.textContent='Enviar respostas';err.textContent=(j&&j.erro)||'Não deu certo. Tente de novo.';err.hidden=false;}});
+  });
+}
+fetch('/api/briefing?t='+encodeURIComponent(TOKEN)).then(function(r){return r.json();}).catch(function(){return {ok:false};}).then(function(j){
+  if(!j||!j.ok){app.innerHTML='<div class="brand"><i>'+GATO+'</i>Studios Miau</div><h1>Link inválido</h1><p class="lead">Confira se o link está completo ou peça um novo à equipe pelo WhatsApp.</p>';return;}
+  D=j;P=perguntas(D);load();draw();bind();
+});
+})();
+</script>
+</body>
+</html>

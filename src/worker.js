@@ -6,6 +6,7 @@ import portfolio from '../netlify/functions/portfolio.mjs';
 import previa from '../netlify/functions/previa.mjs';
 import asaasWebhook from '../netlify/functions/asaas-webhook.mjs';
 import meuip from '../netlify/functions/meuip.mjs';
+import briefing from '../netlify/functions/briefing.mjs';
 import pedidoExterno from '../netlify/functions/pedido-externo.mjs';
 import { equipeConfere } from '../netlify/lib/util.mjs';
 
@@ -17,6 +18,7 @@ const ROTAS = {
   '/api/asaas-webhook': asaasWebhook,
   '/api/meuip': meuip,
   '/api/pedido-externo': pedidoExterno,
+  '/api/briefing': briefing,
 };
 
 export default {
@@ -76,6 +78,16 @@ export default {
       const resp = new Response(rw.transform(r).body, r);
       resp.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
       resp.headers.set('Cache-Control', 'no-store');
+      return resp;
+    }
+
+    // Formulário pós-pagamento (/b/TOKEN): página própria, fora do Google e sem cache.
+    if (url.pathname.startsWith('/b/')) {
+      const r = await env.ASSETS.fetch(new Request(url.origin + '/briefing.html', { headers: request.headers }));
+      const resp = new Response(r.body, r);
+      resp.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      resp.headers.set('Cache-Control', 'no-store');
+      resp.headers.set('Referrer-Policy', 'no-referrer');
       return resp;
     }
 

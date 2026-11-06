@@ -170,3 +170,17 @@ Usado só pelo painel/IA (senha PAINEL_TOKEN no cabeçalho `X-Painel-Token`). A 
 
 ## Serviços avulsos pagos direto
 Serviços com valor na tabela (`netlify/lib/precos.mjs`, função `cotacaoServico`) agora são cobrados no site e no WhatsApp: o cliente escolhe Pix ou cartão, aceita os termos, informa CPF/CNPJ e recebe o link do Asaas. O valor é o da tabela × quantidade (vídeo: por Reels de 15 s a 1 min). Depois do pagamento a equipe chama em até 24 horas para pegar o que falta. O site completo continua sob proposta (sem cobrança). Termos versão 2026-11-rascunho-7.
+
+## Formulário depois do pagamento (/b/TOKEN)
+Para o cliente não desistir antes de pagar, o pedido no site ficou curto (plano: ramo, aparecer, dados, período, forma e aceite; serviço: ramo, dados, forma e aceite). As perguntas técnicas (objetivo, conta, agência, experiência, cidade para quem não é Premium; e os detalhes de cada serviço) vão para um formulário que só chega depois do pagamento.
+- Quando o Asaas confirma o pagamento, o webhook gera um link assinado (`/b/...`, ninguém consegue inventar nem alterar) e o manda no aviso do Telegram e no evento `pagamento` ao painel (`briefing_url`, `produto`, `tipo`). O painel envia ao cliente no WhatsApp.
+- O mesmo link vale para todos os avisos do pedido (parcelas, meses). O painel deve mandar uma vez só por pedido.
+- A página é `public/briefing.html`, servida pelo Worker em `/b/*` (sem cache, fora do Google). As respostas vão por `POST /api/briefing` ao painel (evento `briefing`) e ao Telegram. O cliente pode reenviar para corrigir.
+- Perguntas por produto: ver `perguntas()` em `public/briefing.html`.
+
+## Página dos termos (/termos)
+`public/termos.html` é gerada pelo `tools/build.py` com o mesmo texto do pedido e a versão atual. Serve de link público dos termos (ex.: para o painel mandar no WhatsApp). Se mudar os termos no site, gere de novo.
+
+## Página de links para a bio do Instagram (/bio)
+Link para colar na bio: `https://studiosmiau.com.br/bio`. É uma página leve (sem scripts pesados) com "Monte o seu plano", os 3 planos, os serviços avulsos com preço, vídeos (só aparece se houver no portfólio) e WhatsApp. Cada botão abre direto o plano ou serviço no site, com `?o=bio` no endereço para identificar quem veio da bio.
+A página é gerada pelo `tools/build.py` com os preços, serviços e vagas do site: mudou algo no site, gere de novo. A foto é `public/img/equipe-bio.jpg`.
