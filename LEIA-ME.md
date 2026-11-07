@@ -208,3 +208,7 @@ Plano de entrada: 1 Reels por mês, 4 stories por semana, organização do perfi
 - Na página de **Edição de vídeo** ele é recomendado como "assessoria mais barata". Com 2 ou mais vídeos no carrinho, o texto compara o valor dos vídeos com o do Start.
 - Para mudar o preço: `CFG.plans` (id `start`) no `index.html` **e** `start` em `netlify/lib/precos.mjs`. O build para se os dois divergirem.
 - O valor mínimo do plano sob medida é o do plano pronto mais barato (hoje o Start, R$ 697), calculado sozinho. Quando um plano pronto já cobre o que a pessoa montou (visitas a mais entram como extra de R$ 500) e não custa mais, o site mostra essa sugestão.
+
+
+## Prévia: botão de WhatsApp depois da reação (novo)
+Depois de tocar em Gostei muito / Quero ajustar algo / Tenho uma dúvida, a página mostra o botão "Continuar no WhatsApp" com a mensagem pronta daquela reação. O número e a mensagem vêm do painel (Vendas → Prévias) pelo Apps Script v79; sem número no painel, vale o `WHATSAPP` do Cloudflare. `POST /api/previa {c, r}` agora devolve `{ok, botaoWhats, botaoMensagem, incentivo}`. Com Apps Script antigo, a página usa a mensagem padrão e nada quebra.

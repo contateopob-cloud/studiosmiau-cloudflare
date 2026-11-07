@@ -27,7 +27,7 @@ export default async (req, context) => {
       const p = j && j.ok && j.previa;
       const id = p && idYoutube(p.link);
       if (!id) return indisponivel();
-      return json({ ok: true, previa: { id, cliente: txt(p.cliente, 60), empresa: txt(p.empresa, 80), mensagem: txt(p.mensagem, 300), validoAte: /^\d{4}-\d{2}-\d{2}$/.test(p.validoAte) ? p.validoAte : '', horizontal: String(p.formato || '') === 'horizontal', botaoWhats: zap(p.botaoWhats), botaoMensagem: txt(p.botaoMensagem, 300), incentivo: txt(p.incentivo, 200) } });
+      return json({ ok: true, previa: { id, cliente: txt(p.cliente, 60), empresa: txt(p.empresa, 80), mensagem: txt(p.mensagem, 300), validoAte: /^\d{4}-\d{2}-\d{2}$/.test(p.validoAte) ? p.validoAte : '', horizontal: String(p.formato || '') === 'horizontal', botaoWhats: zap(p.botaoWhats), botaoMensagem: txt(p.botaoMensagem, 300), incentivo: txt(p.incentivo, 200), jaCliente: p.jaCliente === true || p.jaCliente === 1 } });
     } catch (e) {
       console.error('Prévia:', String(e.message || e));
       return json({ ok: false, erro: 'indisponivel' }, 503);
@@ -59,7 +59,8 @@ export default async (req, context) => {
       const j = await painel({ evento: 'previa_resposta', codigo, resposta, ...v });
       if (!j || !j.ok) return indisponivel();
       if (!daEquipe && !j.equipe) await Promise.allSettled([telegram(`PRÉVIA: ${txt(j.cliente, 60)}${j.empresa ? ' · ' + txt(j.empresa, 80) : ''} respondeu: ${txt(j.resposta, 30).toUpperCase()}${j.whatsapp ? '\nWhatsApp: ' + txt(j.whatsapp, 20) : ''}`)]);
-      return json({ ok: true });
+      // devolve o botão de WhatsApp já pronto para esta reação (número, mensagem e incentivo definidos no painel)
+      return json({ ok: true, botaoWhats: zap(j.botaoWhats), botaoMensagem: txt(j.botaoMensagem, 300), incentivo: txt(j.incentivo, 200) });
     } catch (e) {
       console.error('Prévia resposta:', String(e.message || e));
       return json({ ok: false, erro: 'indisponivel' }, 503);

@@ -1540,7 +1540,7 @@ function carregarPortfolio(){
   }).catch(()=>{});
 }
 /* =================== prévia: link temporário com o vídeo de um possível cliente (/p/codigo) =================== */
-const PV={code:null,data:null,off:false,resp:'',enviando:false};
+const PV={code:null,data:null,off:false,resp:'',enviando:false,rx:null};
 const PV_RESP={
   gostei:{t:'Que bom que você gostou!',d:'A gente já foi avisado. Vamos conversar sobre como fazer isso para o seu perfil?',wa:'Gostei muito do vídeo e quero conversar sobre o meu perfil.'},
   ajustes:{t:'Combinado, vamos acertar!',d:'Conta pra gente pelo WhatsApp o que você quer mudar. A gente refaz com você.',wa:'Vi o vídeo e quero ajustar algumas coisas.'},
@@ -1553,22 +1553,25 @@ function pvTrack(a){
   try{fetch('/api/previa',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({c:PV.code,a:a})}).catch(()=>{});}catch(e){}
 }
 /* botão de WhatsApp da prévia: usa o número e a mensagem definidos no painel; se não houver, o número do estúdio */
-function pvBotao(frase,rotulo,cls){
-  const d=PV.data||{};
-  return `<a class="${cls||'btn btn-primary btn-block'}" href="#" data-wa${d.botaoWhats?` data-num="${esc(d.botaoWhats)}"`:''} data-msg="${esc(d.botaoMensagem||pvWa(frase))}">${WA_I}${esc(rotulo||'Falar no WhatsApp')}</a>`;
+function pvBotao(frase,rotulo,cls,ov){
+  const d=PV.data||{};ov=ov||{};
+  const num=ov.num||d.botaoWhats||'',msg=ov.msg||d.botaoMensagem||pvWa(frase);
+  return `<a class="${cls||'btn btn-primary btn-block'}" href="#" data-wa${num?` data-num="${esc(num)}"`:''} data-msg="${esc(msg)}">${WA_I}${esc(rotulo||'Falar no WhatsApp')}</a>`;
 }
 function pvDireto(){
   const d=PV.data||{};
   if(!(d.incentivo||d.botaoWhats||d.botaoMensagem)) return '';
-  return `<div class="pv-direto"><b>Prefere falar direto com a gente?</b>${d.incentivo?`<p>${esc(d.incentivo)}</p>`:''}${pvBotao('Vi o vídeo e quero conversar.','Chamar no WhatsApp')}</div>`;
+  return `<div class="pv-direto"><b>${d.jaCliente?'Precisa falar com a gente?':'Prefere falar direto com a gente?'}</b>${d.incentivo?`<p>${esc(d.incentivo)}</p>`:''}${pvBotao('Vi o vídeo e quero conversar.','Chamar no WhatsApp')}</div>`;
 }
 function pvWa(frase){const d=PV.data||{};return `Oi! Sou ${d.cliente||'o cliente'}${d.empresa?' (da '+d.empresa+')':''}. ${frase}`;}
 function pvReacao(){
   const d=PV.data;
   if(PV.resp){
-    const r=PV_RESP[PV.resp];
-    return `<div class="pv-thanks"><b>${esc(r.t)}</b><p>${esc(r.d)}</p>${d&&d.incentivo?`<p class="pv-inc"><strong>${esc(d.incentivo)}</strong></p>`:''}
-      ${pvBotao(r.wa)}</div>`;
+    const r=PV_RESP[PV.resp],x=PV.rx||{};
+    /* mensagem pronta para esta reação: a do painel (via servidor); sem ela, a padrão. A do painel em "d.botaoMensagem" é a de "Gostei muito". */
+    const msg=x.botaoMensagem||(PV.resp==='gostei'&&d&&d.botaoMensagem)||pvWa(r.wa),inc=x.incentivo||(d&&d.incentivo)||'';
+    return `<div class="pv-thanks" id="pv-thanks"><b>${esc(r.t)}</b><p>${esc(r.d)}</p>${inc?`<p class="pv-inc"><strong>${esc(inc)}</strong></p>`:''}
+      ${pvBotao(r.wa,'Continuar no WhatsApp',null,{num:x.botaoWhats,msg})}<p class="sub" style="margin:10px 0 0;font-size:.85rem">A conversa já começa com a mensagem pronta; é só enviar.</p></div>`;
   }
   return `<h2 class="pv-q">O que você achou?</h2>
     <div class="pv-react" role="group" aria-label="O que você achou do vídeo?">
@@ -1578,6 +1581,7 @@ function pvReacao(){
     </div>${PV.enviando?'<p class="sub" role="status">Enviando…</p>':''}${pvDireto()}`;
 }
 function pvMais(){
+  if(PV.data&&PV.data.jaCliente) return '';   /* já é cliente: sem planos nem serviços */
   return `<div class="pv-more"><h2 class="pv-q">Quer ver como a gente trabalha?</h2>
     <a class="svc-teaser" href="#planos"><div><b>Ver os planos</b><span>Instagram todo mês, com Reels, carrosséis e stories</span></div></a>
     <a class="svc-teaser" href="#servicos"><div><b>Ver os serviços</b><span>Edição de vídeo, carrossel e mais, sem mensalidade</span></div></a></div>`;
@@ -1605,12 +1609,12 @@ function paintPrevia(){
 }
 function renderPrevia(code){
   if(PV.code===code&&(PV.data||PV.off)){paintPrevia();return;}
-  PV.code=code;PV.data=null;PV.off=false;PV.resp='';
+  PV.code=code;PV.data=null;PV.off=false;PV.resp='';PV.rx=null;
   $('#previa').innerHTML='<p class="sub" role="status" style="padding-top:40px">Abrindo o seu vídeo…</p>';
   if(location.protocol==='file:'){PV.off=true;paintPrevia();return;}
   fetch('/api/previa?c='+encodeURIComponent(code),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
     const p=j&&j.ok&&j.previa;
-    if(p&&/^[A-Za-z0-9_-]{11}$/.test(p.id||'')) PV.data={id:p.id,cliente:String(p.cliente||'').slice(0,60),empresa:String(p.empresa||'').slice(0,80),mensagem:String(p.mensagem||'').slice(0,300),validoAte:String(p.validoAte||''),horizontal:!!p.horizontal,botaoWhats:/^\d{12,13}$/.test(p.botaoWhats||'')?p.botaoWhats:'',botaoMensagem:String(p.botaoMensagem||'').slice(0,300),incentivo:String(p.incentivo||'').slice(0,200)};
+    if(p&&/^[A-Za-z0-9_-]{11}$/.test(p.id||'')) PV.data={id:p.id,cliente:String(p.cliente||'').slice(0,60),empresa:String(p.empresa||'').slice(0,80),mensagem:String(p.mensagem||'').slice(0,300),validoAte:String(p.validoAte||''),horizontal:!!p.horizontal,botaoWhats:/^\d{12,13}$/.test(p.botaoWhats||'')?p.botaoWhats:'',botaoMensagem:String(p.botaoMensagem||'').slice(0,300),incentivo:String(p.incentivo||'').slice(0,200),jaCliente:p.jaCliente===true||p.jaCliente===1};
     else PV.off=true;
     if(previaCode()===code&&document.body.dataset.view==='previa') paintPrevia();
   }).catch(()=>{PV.off=true;if(document.body.dataset.view==='previa')paintPrevia();});
@@ -1626,8 +1630,9 @@ document.addEventListener('click',e=>{
   const rb=e.target.closest('[data-pvr]');
   if(rb&&PV.data&&!PV.enviando){
     const r=rb.dataset.pvr; PV.enviando=true; $('#pv-reacao').innerHTML=pvReacao();
-    fetch('/api/previa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:PV.code,r:r})}).catch(()=>{}).finally(()=>{
-      PV.enviando=false;PV.resp=r;const bx=$('#pv-reacao');if(bx){bx.innerHTML=pvReacao();bindWa(bx);}
+    fetch('/api/previa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({c:PV.code,r:r})}).then(x=>x.ok?x.json():null).catch(()=>null).then(j=>{
+      PV.rx=j&&j.ok?{botaoWhats:/^\d{12,13}$/.test(j.botaoWhats||'')?j.botaoWhats:'',botaoMensagem:String(j.botaoMensagem||'').slice(0,300),incentivo:String(j.incentivo||'').slice(0,200)}:null;
+      PV.enviando=false;PV.resp=r;const bx=$('#pv-reacao');if(bx){bx.innerHTML=pvReacao();bindWa(bx);const t=$('#pv-thanks');if(t&&t.scrollIntoView)try{t.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}}
     });
   }
 });
